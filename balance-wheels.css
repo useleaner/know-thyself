@@ -1,0 +1,74 @@
+@property --orbit-size { syntax: '<length>'; inherits: true; initial-value: 132px; }
+/* Orrery da gaveta: três anéis concêntricos (elemento, qualidade, dualidade) e as escolhas ao lado. */
+.map-balance { --orbit-size: 132px; --ease: var(--sheet-ease, cubic-bezier(.22, 1, .36, 1)); position: relative; display: grid; grid-template-columns: 1fr; flex-shrink: 0; min-height: 144px; gap: 0; padding: 6px 0 6px calc(var(--orbit-size) + 14px); transition: --orbit-size .42s var(--ease), min-height .42s var(--ease); }
+.map-balance::before { content: ""; position: absolute; top: 50%; left: 0; width: var(--orbit-size); aspect-ratio: 1; transform: translateY(-50%); border-radius: 50%; background: radial-gradient(circle, #decbaa14 0 18%, transparent 19% 62%, #aab9ed0d 63% 64%, transparent 65%); pointer-events: none; }
+.map-balance .balance-wheel { position: static; display: flex; flex-direction: column; justify-content: center; aspect-ratio: auto; min-height: 44px; padding: 0; }
+.map-balance .balance-wheel svg { position: absolute; top: 50%; left: 0; width: var(--orbit-size); height: var(--orbit-size); transform: translateY(-50%); overflow: visible; pointer-events: none; }
+.map-balance .balance-quality svg { left: calc(var(--orbit-size) * .13); width: calc(var(--orbit-size) * .74); height: calc(var(--orbit-size) * .74); }
+.map-balance .balance-duality svg { left: calc(var(--orbit-size) * .26); width: calc(var(--orbit-size) * .48); height: calc(var(--orbit-size) * .48); }
+.map-balance .wheel-depth { fill: none; stroke: #c6b899; stroke-width: 7; opacity: .1; }
+.map-balance .wheel-segments { fill: none; stroke-width: 7; stroke-linecap: butt; transition: opacity .36s var(--ease), stroke-width .36s var(--ease), filter .36s var(--ease); }
+.map-balance .wheel-segments circle { pointer-events: stroke; cursor: pointer; }
+.map-balance .wheel-splits { fill: none; stroke: #0a1027; stroke-width: 12; }
+.map-balance .wheel-rim { fill: none; stroke-width: .45; opacity: .5; transition: opacity .36s var(--ease); }
+.map-balance .wheel-glyphs { opacity: 0; transition: opacity .3s var(--ease); }
+.map-balance .wheel-glyphs g { fill: none; stroke: currentColor; stroke-width: .9; stroke-linecap: round; stroke-linejoin: round; }
+.map-balance .wheel-glyphs .dot, .balance-legend .dot { fill: #fff3dc; stroke: none; }
+.map-balance .wheel-glyphs .halo { display: none; }
+.balance-legend .halo { stroke-width: .5; stroke-opacity: .35; stroke-dasharray: .8 2.2; }
+.map-balance .glyph-plate { fill: #0a1027; stroke: currentColor; stroke-width: .6; stroke-opacity: .6; }
+/* Centro: um "sol" dourado; com um anel escolhido, mostra a categoria que mais pesa nele. */
+.map-balance .balance-core { position: absolute; top: 50%; left: calc(var(--orbit-size) / 2); display: grid; justify-items: center; width: calc(var(--orbit-size) * .34); margin: 0; transform: translate(-50%, -50%); color: #f8e6c7; text-align: center; pointer-events: none; opacity: 0; transition: opacity .3s var(--ease); }
+.map-balance .balance-core b { font: 500 20px/1 Bricolage, Space, sans-serif; font-variant-numeric: tabular-nums; }
+.map-balance .balance-core span { display: none; max-width: 100%; overflow: hidden; color: #cec8df; font: 400 9px/1.3 Space, sans-serif; letter-spacing: .06em; text-transform: uppercase; text-overflow: ellipsis; white-space: nowrap; }
+.map-balance::after { content: ""; position: absolute; top: 50%; left: calc(var(--orbit-size) / 2); width: 5px; height: 5px; border-radius: 50%; background: #f1d9a8; box-shadow: 0 0 10px 2px #e9c98a66; transform: translate(-50%, -50%); transition: opacity .3s var(--ease); pointer-events: none; }
+.map-panel[data-balance] .map-balance::after { opacity: 0; }
+/* Escolhas: título creme e contagens com o ponto da cor do segmento. */
+.map-balance .balance-choice { position: relative; min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 0 4px 14px; transition: opacity .3s var(--ease); }
+.map-balance .balance-choice::before { content: ""; position: absolute; left: 0; top: 50%; width: 4px; height: 4px; border-radius: 50%; background: #f1d9a8; transform: translateY(-50%) scale(0); transition: transform .3s var(--ease); }
+.map-balance h3 { position: static; display: block; margin: 0 0 3px; color: #f8e6c7; font: 500 14px/1.2 Bricolage, Space, sans-serif; letter-spacing: 0; text-shadow: none; }
+.map-balance .balance-counts { display: flex; flex-wrap: wrap; gap: 2px 10px; margin: 0; color: #cec8df; font: 400 11px/1.4 Space, sans-serif; font-variant-numeric: tabular-nums; }
+.balance-counts span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.balance-counts i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.balance-counts b { color: #f8e6c7; font-weight: 500; }
+.map-balance .balance-trigger { position: absolute; inset: 0; width: 100%; height: 100%; min-height: 44px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: #aab9ed20; }
+.map-balance .balance-trigger[aria-expanded="true"] { outline: 0; }
+.map-balance .balance-trigger:focus-visible { outline: 2px solid #f8e6c7; outline-offset: 1px; }
+/* Cores das categorias, tiradas do tom claro de cada gradiente dos anéis. */
+.cat-fire { color: #c69a8f; } .cat-earth { color: #95b39e; } .cat-air { color: #cbc39a; } .cat-water { color: #95a7c6; }
+.cat-cardinal { color: #c39f91; } .cat-fixed { color: #959dc6; } .cat-mutable { color: #c6c3aa; }
+.cat-feminine { color: #b1a8cf; } .cat-masculine { color: #c6b486; }
+/* Com um anel escolhido: ele ganha corpo e glifos; os outros recuam. */
+.map-panel[data-balance] .wheel-segments, .map-panel[data-balance] .wheel-rim { opacity: .26; }
+.map-panel[data-balance] .balance-choice { opacity: .56; }
+.map-panel[data-balance="element"] .balance-element :is(.wheel-segments, .wheel-rim, .wheel-glyphs, .balance-core),
+.map-panel[data-balance="quality"] .balance-quality :is(.wheel-segments, .wheel-rim, .wheel-glyphs, .balance-core),
+.map-panel[data-balance="duality"] .balance-duality :is(.wheel-segments, .wheel-rim, .wheel-glyphs, .balance-core),
+.map-panel[data-balance="element"] .balance-element .balance-choice,
+.map-panel[data-balance="quality"] .balance-quality .balance-choice,
+.map-panel[data-balance="duality"] .balance-duality .balance-choice { opacity: 1; }
+.map-panel[data-balance="element"] .balance-element .wheel-segments,
+.map-panel[data-balance="quality"] .balance-quality .wheel-segments,
+.map-panel[data-balance="duality"] .balance-duality .wheel-segments { stroke-width: 11; }
+.map-balance .balance-wheel:has(.balance-trigger[aria-expanded="true"]) .balance-choice::before { transform: translateY(-50%) scale(1); }
+/* Leitura aberta: legenda com a proporção de cada categoria. */
+.balance-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; margin: 18px 0 26px; }
+.balance-legend > div { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 4px 8px; font-size: 14px; }
+.balance-legend > div::after { content: ""; grid-column: 1 / -1; height: 2px; border-radius: 2px; background: linear-gradient(90deg, currentColor var(--share, 0%), #ffffff14 var(--share, 0%)); }
+.balance-legend svg { width: 24px; height: 24px; overflow: visible; fill: none; stroke: currentColor; stroke-width: .9; stroke-linecap: round; stroke-linejoin: round; }
+.balance-legend span { color: #e7dbca; }
+.balance-legend b { color: #f8e6c7; font-weight: 500; font-variant-numeric: tabular-nums; }
+.map-panel .balance-reading { margin: 20px 0; padding: 0; }
+.map-panel .balance-reading h3 { margin: 0; color: #f8e6c7; font: 500 25px/1.2 Bricolage, Space, sans-serif; }
+.map-panel .balance-reading p { margin: 0 0 16px; font-size: 15px; line-height: 1.8; }
+@media (prefers-reduced-motion: reduce) { .map-balance *, .map-balance::after { transition: none !important; } }
+@media (max-width: 380px) {
+  .map-balance { --orbit-size: 108px; min-height: 136px; padding-left: calc(var(--orbit-size) + 10px); }
+  .map-balance .balance-choice { padding-left: 10px; }
+  .map-balance .balance-core b { font-size: 16px; }
+  .map-balance .balance-core span { display: none; }
+  .map-panel { padding-inline: 14px; }
+  .map-panel-header h2 { font-size: 19px; }
+  .map-panel-summary { gap: 8px; }
+  .map-predominance { font-size: 12px; }
+}

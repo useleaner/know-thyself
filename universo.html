@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <script>try{var l=localStorage.getItem('know-thyself.lang');if(l==='en'||(l!=='pt-BR'&&!/^pt\b/i.test(navigator.language||'pt')))document.documentElement.classList.add('i18n-pending')}catch(e){}</script>
+  <style>.i18n-pending main{visibility:hidden;animation:i18n-show 0s 3s forwards}@keyframes i18n-show{to{visibility:visible}}</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#080d23">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Know Thyself">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Know Thyself — Seu universo</title>
+  <link rel="manifest" href="manifest.webmanifest" crossorigin="use-credentials">
+  <link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css?v=20261020-veu4">
+  <link rel="stylesheet" href="cosmos.css?v=20261020-veu5">
+  <link rel="stylesheet" href="planet-popup.css?v=20261020-veu4">
+  <link rel="stylesheet" href="balance-wheels.css?v=20261020-veu3">
+  <link rel="stylesheet" href="login.css">
+  <link rel="modulepreload" href="app.js?v=20261020-ciclos">
+  <link rel="modulepreload" href="solar-study.js?v=20261019-eixos">
+  <link rel="modulepreload" href="vendor/three.module.js">
+  <link rel="modulepreload" href="vendor/three.core.js">
+<script>addEventListener('gesturestart',e=>e.preventDefault())</script>
+</head>
+<body>
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash-halo"></div>
+    <div class="splash-stage">
+      <div class="splash-wave"></div>
+      <svg class="splash-mark" viewBox="0 0 80 140"><defs><radialGradient id="splash-glow"><stop offset="0" stop-color="#f0caa1" stop-opacity=".75"/><stop offset=".45" stop-color="#f0caa1" stop-opacity=".22"/><stop offset="1" stop-color="#f0caa1" stop-opacity="0"/></radialGradient></defs><g class="splash-rings" fill="none" stroke="#e2def2" stroke-width="1.3"><circle class="ring-mid" cx="40" cy="70" r="30"/><circle class="ring-top" cx="40" cy="40" r="30"/><circle class="ring-bottom" cx="40" cy="100" r="30"/></g><g class="splash-ticks" stroke="#c1b9dc" stroke-width="1.3" stroke-linecap="round"><line x1="32.24" y1="41.02" x2="33.79" y2="46.82" style="--i:0"/><line x1="47.76" y1="41.02" x2="46.21" y2="46.82" style="--i:1"/><line x1="61.21" y1="48.79" x2="56.97" y2="53.03" style="--i:2"/><line x1="68.98" y1="62.24" x2="63.18" y2="63.79" style="--i:3"/><line x1="68.98" y1="77.76" x2="63.18" y2="76.21" style="--i:4"/><line x1="61.21" y1="91.21" x2="56.97" y2="86.97" style="--i:5"/><line x1="47.76" y1="98.98" x2="46.21" y2="93.18" style="--i:6"/><line x1="32.24" y1="98.98" x2="33.79" y2="93.18" style="--i:7"/><line x1="18.79" y1="91.21" x2="23.03" y2="86.97" style="--i:8"/><line x1="11.02" y1="77.76" x2="16.82" y2="76.21" style="--i:9"/><line x1="11.02" y1="62.24" x2="16.82" y2="63.79" style="--i:10"/><line x1="18.79" y1="48.79" x2="23.03" y2="53.03" style="--i:11"/></g><g class="splash-hex-spin"><g class="splash-hex" fill="#f3edf9"><circle cx="40" cy="58" r="1.6"/><circle cx="50.39" cy="64" r="1.6"/><circle cx="50.39" cy="76" r="1.6"/><circle cx="40" cy="82" r="1.6"/><circle cx="29.61" cy="76" r="1.6"/><circle cx="29.61" cy="64" r="1.6"/></g></g><g class="splash-nodes" fill="#e2def2"><circle cx="40" cy="40" r="2.4" style="--i:0"/><circle cx="40" cy="100" r="2.4" style="--i:0"/><circle cx="14.02" cy="55" r="2.4" style="--i:1"/><circle cx="65.98" cy="55" r="2.4" style="--i:1"/><circle cx="14.02" cy="85" r="2.4" style="--i:1"/><circle cx="65.98" cy="85" r="2.4" style="--i:1"/><circle cx="40" cy="10" r="2.4" style="--i:2"/><circle cx="40" cy="130" r="2.4" style="--i:2"/></g><circle class="splash-glow" cx="40" cy="70" r="16" fill="url(#splash-glow)"/><circle class="splash-core" cx="40" cy="70" r="4.6" fill="#f0caa1"/></svg>
+    </div>
+    <p class="splash-word"><span><span style="--w:0">Know</span></span> <span><span style="--w:1">Thyself</span></span></p>
+  </div>
+  <script>try{var s=document.getElementById('splash'),k='kt-splash-start',n=Date.now(),t=+sessionStorage.getItem(k)||0;if(!t)sessionStorage.setItem(k,t=n);s.style.setProperty('--elapsed',(n-t)+'ms');s.dataset.start=t}catch(e){}</script>
+  <main class="device" aria-label="Know Thyself">
+    <div class="atmosphere" aria-hidden="true"><div class="nebula nebula-far"></div><div class="nebula nebula-near"></div><div class="stardust"></div></div>
+    <p class="session-status" id="auth-status" role="status" aria-live="polite">Abrindo seu universo…</p>
+    <div id="app-content" hidden inert>
+    <header class="cosmos-header">
+        <a class="profile-button" id="profile-button" href="perfil.html" aria-label="Perfil"><span class="profile-name">Carregando perfil…</span></a>
+        <a class="settings-button" id="settings-button" href="ajustes.html" aria-label="Ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></a>
+    </header>
+    <div class="orbit-scene" id="orbit-scene" role="region" aria-label="Explore seu universo" aria-roledescription="navegação circular">
+      <section class="orbit-area" data-area="map" data-active="true" aria-labelledby="map-title">
+        <div class="area-scroll map-scroll" tabindex="0" aria-label="Conteúdo do seu mapa">
+          <h1 id="map-title" class="sr-only">Seu mapa</h1>
+          <div class="map-calendar" id="map-calendar" data-orbit-gesture="local" hidden>
+            <div class="calendar-days" id="calendar-days" role="group" aria-label="Escolher o dia"></div>
+          </div>
+          <p class="map-empty" id="map-empty" role="status" hidden></p>
+          <figure class="map-study" tabindex="0" aria-describedby="map-gesture-help" aria-label="Mapa 3D calculado do perfil ativo, com os doze signos, as casas do sistema escolhido e os aspectos. Selecione um corpo ou uma linha.">
+            <div class="solar-mount" id="solar-mount"><p class="solar-loading">Preparando seu universo…</p></div>
+            <p id="map-gesture-help" class="sr-only">Dois dedos no mapa ajustam zoom e inclinação. Um dedo no mapa troca de seção. A data muda na faixa de dias do alto. No teclado, mais e menos ajustam o zoom, setas para cima e para baixo ajustam a inclinação, setas laterais mudam o dia e zero restaura a visão.</p>
+          </figure>
+          <div class="map-sr-nav" id="map-sr-nav" role="group" aria-label="Lista de corpos e aspectos do mapa" data-orbit-gesture="local">
+            <div class="map-body-list" id="map-body-list" role="group" aria-label="Selecionar corpo celeste"></div>
+            <div class="map-aspect-list" id="map-aspect-list" role="group" aria-label="Selecionar aspecto"></div>
+          </div>
+          <p id="map-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+        </div>
+        <section class="map-reading" id="map-reading" aria-label="Leitura do mapa" data-orbit-gesture="local" hidden>
+          <button type="button" class="map-reading-close" data-map-action="clear" aria-label="Fechar leitura do mapa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+          <div id="map-reading-content"></div>
+        </section>
+        <section class="map-panel" id="map-panel" data-raised="false" aria-labelledby="map-panel-title">
+          <header class="map-panel-header">
+            <button type="button" class="panel-handle" id="panel-handle" aria-expanded="false" aria-controls="map-panel-body" aria-label="Expandir leitura do mapa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
+            <h2 id="map-panel-title">Mapa Astral com Trânsitos</h2>
+          </header>
+          <svg class="balance-defs" width="0" height="0" aria-hidden="true" focusable="false"><defs>
+            <radialGradient id="balance-fire" gradientTransform="rotate(90 60 60)" gradientUnits="userSpaceOnUse" cx="35" cy="28" r="110"><stop stop-color="#cdaaa1"/><stop offset=".48" stop-color="#b88579"/><stop offset="1" stop-color="#836c70"/></radialGradient>
+            <radialGradient id="balance-earth" gradientTransform="rotate(90 60 60)" gradientUnits="userSpaceOnUse" cx="35" cy="28" r="110"><stop stop-color="#aac3b3"/><stop offset=".48" stop-color="#87a991"/><stop offset="1" stop-color="#6a7e7c"/></radialGradient>
+            <radialGradient id="balance-air" gradientTransform="rotate(90 60 60)" gradientUnits="userSpaceOnUse" cx="35" cy="28" r="110"><stop stop-color="#d3cdad"/><stop offset=".48" stop-color="#c0b88a"/><stop offset="1" stop-color="#878679"/></radialGradient>
+            <radialGradient id="balance-water" gradientTransform="rotate(90 60 60)" gradientUnits="userSpaceOnUse" cx="35" cy="28" r="110"><stop stop-color="#a7b5cf"/><stop offset=".48" stop-color="#8196bb"/><stop offset="1" stop-color="#677492"/></radialGradient>
+            <radialGradient id="balance-cardinal" gradientTransform="rotate(90 60 60)" gradientUnits="userSpaceOnUse" cx="35" cy="28" r="110"><stop stop-color="#cdafa3"/><stop offset=".48" stop-color="#b78d7c"/><stop offset="1" stop-color="#837072"/></radialGradient>
+            <radialGradient id="balance-fixed" gradientTransform="rotate(90 60 60)" gradientUnits="userSpaceOnUse" cx="35" cy="28" r="110"><stop stop-color="#a7aed0"/><stop offset=".48" stop-color="#828bbb"/><stop offset="1" stop-color="#676f92"/></radialGradient>
+            <radialGradient id="balance-mutable" gradientTransform="rotate(90 60 60)" gradientUnits="userSpaceOnUse" cx="35" cy="28" r="110"><stop stop-color="#cdcbb7"/><stop offset=".48" stop-color="#b8b499"/><stop offset="1" stop-color="#828380"/></radialGradient>
+            <radialGradient id="balance-feminine" gradientTransform="rotate(90 60 60)" gradientUnits="userSpaceOnUse" cx="35" cy="28" r="110"><stop stop-color="#bcb5d6"/><stop offset=".48" stop-color="#a095c4"/><stop offset="1" stop-color="#777395"/></radialGradient>
+            <radialGradient id="balance-masculine" gradientTransform="rotate(90 60 60)" gradientUnits="userSpaceOnUse" cx="35" cy="28" r="110"><stop stop-color="#cfc19b"/><stop offset=".48" stop-color="#bba671"/><stop offset="1" stop-color="#847c6c"/></radialGradient>
+            <radialGradient id="balance-bevel" gradientUnits="userSpaceOnUse" cx="60" cy="60" r="55"><stop offset=".65" stop-color="#0c1534" stop-opacity=".18"/><stop offset=".73" stop-color="#0c1534" stop-opacity="0"/><stop offset=".9" stop-color="#e3e7ff" stop-opacity="0"/><stop offset=".98" stop-color="#e3e7ff" stop-opacity=".28"/><stop offset="1" stop-color="#e3e7ff" stop-opacity=".08"/></radialGradient>
+            <linearGradient id="balance-rim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e6e9ff" stop-opacity=".65"/><stop offset=".5" stop-color="#a3b4e6" stop-opacity=".2"/><stop offset="1" stop-color="#344568" stop-opacity=".12"/></linearGradient>
+          </defs></svg>
+          <div class="map-balance" id="map-balance"></div>
+          <div class="map-panel-summary"><p class="map-predominance" id="map-predominance"></p></div>
+          <div class="map-panel-body" id="map-panel-body" tabindex="0" aria-label="Leitura do mapa" hidden></div>
+          <div class="mode-dock" id="mode-dock" data-orbit-gesture="local">
+            <div class="mode-picker">
+              <button type="button" class="mode-toggle" id="mode-toggle" aria-expanded="false" aria-controls="mode-options" aria-label="Trocar modo do mapa"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+              <div class="mode-options" id="mode-options" role="group" aria-label="Modos do mapa" hidden>
+                <button type="button" data-mode="natal" aria-pressed="false" aria-label="Mapa natal" title="Mapa natal"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8.2l1 2.8 2.8 1-2.8 1-1 2.8-1-2.8-2.8-1 2.8-1z" fill="currentColor" stroke="none"/></svg></button>
+                <button type="button" data-mode="transits" aria-pressed="false" aria-label="Natal com trânsitos" title="Natal com trânsitos"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 10.4l.5 1.1 1.1.5-1.1.5-.5 1.1-.5-1.1-1.1-.5 1.1-.5z" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9.5" stroke-dasharray="2.2 2.6"/><circle cx="18.7" cy="5.3" r="1.7" fill="currentColor" stroke="none"/></svg></button>
+                <button type="button" data-mode="synastry" aria-pressed="false" aria-label="Sinastria" title="Sinastria"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/><circle cx="9" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg></button>
+                <button type="button" data-mode="synastry-transits" aria-pressed="false" aria-label="Sinastria com trânsitos" title="Sinastria com trânsitos"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.6" cy="12" r="4.2"/><circle cx="14.4" cy="12" r="4.2"/><circle cx="12" cy="12" r="9.5" stroke-dasharray="2.2 2.6"/><circle cx="18.7" cy="5.3" r="1.7" fill="currentColor" stroke="none"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div class="orbit-preview map-preview" aria-hidden="true"><div class="solar-mount" id="solar-preview"></div></div>
+      </section>
+      <section class="orbit-area" data-area="kaballah" data-active="false" aria-labelledby="tree-title" aria-hidden="true" inert>
+      <div class="scroll-viewport area-scroll" id="viewport" tabindex="0" aria-label="Conteúdo da Kaballah">
+      <div class="tree-tabs" role="tablist" aria-label="Escolha a árvore">
+        <button id="tab-base" role="tab" aria-selected="true" aria-controls="tree-panel" data-mode="base">Árvore da vida</button>
+        <button id="tab-personal" role="tab" aria-selected="false" aria-controls="tree-panel" tabindex="-1" data-mode="personal">A sua árvore</button>
+      </div>
+      <div id="tree-panel" role="tabpanel" aria-labelledby="tab-base" data-mode="base">
+        <section class="intro" aria-labelledby="tree-title">
+          <h1 id="tree-title">Árvore da Vida</h1>
+          <p id="tree-description">Dez esferas, vinte e dois caminhos.<br>Explore as relações entre eles.</p>
+        </section>
+        <figure class="tree-figure" aria-labelledby="tree-title">
+          <div class="tree-scene">
+            <div class="tree-worlds" aria-hidden="true"><img class="world-circles" src="assets/world-orbits.svg?v=20261020-regua" width="600" height="1100" alt=""></div>
+            <div id="tree-mount"></div>
+          </div>
+          <figcaption>Toque em uma esfera ou em um caminho.</figcaption>
+        </figure>
+        <section class="reading-support" aria-label="Orientações de leitura">
+          <p class="study-note" id="base-note">As sefirot são as dez emanações representadas na Árvore da Vida. Os caminhos desta aba seguem a numeração hermética de 11 a 32.</p>
+          <details id="reading-help" hidden>
+            <summary><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 10v6m0-9v.1"/></svg><span>Como ler sua árvore</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+            <p class="section-copy">Toque em uma esfera para ver o detalhe; toque em um caminho para entender suas marcações.</p>
+            <p class="section-copy">Os caminhos pessoais são numerados de 1 a 22.</p>
+            <div class="line-legend" id="line-legend"></div>
+          </details>
+          <details id="base-help" hidden>
+            <summary><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 10v6m0-9v.1"/></svg><span>Como ler a Árvore da Vida</span><svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+            <p class="section-copy">As 10 esferas (sefirot) são as emanações da árvore; os 22 caminhos ligam as esferas entre si. Toque em uma esfera ou em um caminho para abrir a ficha correspondente.</p>
+            <p class="section-copy">Cada caminho mostra a letra hebraica, a atribuição astrológica ou elementar e a carta do Tarô de Thoth, seguindo as atribuições de Aleister Crowley.</p>
+            <p class="section-copy">A numeração de 11 a 32 desta aba é diferente da numeração de 1 a 22 da aba pessoal.</p>
+          </details>
+        </section>
+      </div>
+      </div>
+      <div class="orbit-preview tree-preview" aria-hidden="true"><img class="world-circles" src="assets/world-orbits.svg?v=20261020-regua" width="600" height="1100" alt=""><img class="tree-preview-asset" src="assets/tree-preview-base.svg?v=20261019-scroll" width="600" height="1100" alt=""></div>
+      </section>
+      <section class="orbit-area" data-area="correspondences" data-active="false" aria-labelledby="correspondences-title" aria-hidden="true" inert>
+        <div class="area-scroll correspondence-scroll" tabindex="0" aria-label="Conteúdo das correspondências">
+          <div class="area-intro"><h1 id="correspondences-title">Correspondências</h1><p>Planetas, símbolos e afinidades.</p></div>
+          <div class="moon-emblem"><img id="planet-emblem" src="assets/planets/moon.svg" width="120" height="120" alt=""></div>
+          <h2 class="moon-title" id="planet-name">Lua</h2>
+          <dl class="planet-facts" id="planet-facts">
+            <div><dt>Dia</dt><dd>Segunda-feira</dd></div>
+            <div><dt>Elemento</dt><dd>Água</dd></div>
+            <div><dt>Cores</dt><dd>Violeta, branco, prata</dd></div>
+            <div><dt>Cor complementar</dt><dd>Preto</dd></div>
+            <div><dt>Signo astrológico</dt><dd>Câncer</dd></div>
+            <div><dt>Número de afinidade</dt><dd>9</dd></div>
+            <div><dt>Sefirá</dt><dd>Yesod</dd></div>
+            <div><dt>Arcanjo</dt><dd>Gabriel</dd></div>
+            <div><dt>Divindades</dt><dd>Ártemis, Diana, Hécate, Ísis, Iemanjá</dd></div>
+            <div><dt>Pedras</dt><dd>Pedra-da-lua, selenita, cristal de quartzo</dd></div>
+            <div><dt>Metais</dt><dd>Prata, platina, ítrio</dd></div>
+            <div><dt>Ervas</dt><dd>Musgo-irlandês, jasmim, erva-cidreira, lírio, lótus, malva, moonwort, flor de maracujá, papoula</dd></div>
+            <div><dt>Óleos</dt><dd>Cálamo, cânfora, eucalipto, gálbano, gardênia, mirra, raiz de íris, wintergreen, ylang-ylang</dd></div>
+            <div><dt>Oferendas</dt><dd>Água de fonte, oceano ou mar; conchas, vinho, pérolas e joias de prata</dd></div>
+          </dl>
+          <p class="reference-note" id="planet-note"></p>
+        </div>
+        <nav class="planet-selector" id="planet-selector" aria-label="Escolha o planeta" data-orbit-gesture="local"></nav>
+        <div class="orbit-preview moon-preview" aria-hidden="true"><div class="moon-emblem"><img id="planet-preview" src="assets/planets/moon.svg" width="120" height="120" alt=""></div></div>
+      </section>
+    </div>
+    <div class="orbit-controls">
+      <nav class="orbit-nav" aria-label="Áreas do seu universo"><svg class="orbit-arc" viewBox="0 0 300 24" preserveAspectRatio="none" aria-hidden="true"><path d="M22 4Q150 36 278 4"/></svg><button data-go="correspondences"><span aria-hidden="true"></span>Correspondências</button><button data-go="map" aria-current="page"><span aria-hidden="true"></span>Seu mapa</button><button data-go="kaballah"><span aria-hidden="true"></span>Kaballah</button></nav>
+    </div>
+    <p class="orbit-status sr-only" aria-live="polite" aria-atomic="true">Seu mapa</p>
+    <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+    <section class="study-sheet" id="study-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" hidden>
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <button class="icon-button sheet-close" id="sheet-close" aria-label="Fechar detalhes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+      <div id="sheet-content"></div>
+    </section>
+    </div>
+  </main>
+  <script type="module" src="login.js?v=20261019-eixos"></script>
+</body>
+</html>

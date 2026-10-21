@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+<title>Ativo autoral de hod: vidro etérico vivo</title>
+<defs>
+<radialGradient id="body" cx=".27" cy=".2" r=".87"><stop stop-color="#ffd9b0" stop-opacity=".82"/><stop offset=".35" stop-color="#ee974a" stop-opacity=".92"/><stop offset=".72" stop-color="#5c320e" stop-opacity=".95"/><stop offset="1" stop-color="#060a1c" stop-opacity=".97"/></radialGradient>
+<radialGradient id="depth" cx=".7" cy=".76" r=".8"><stop stop-color="#ee974a" stop-opacity=".75"/><stop offset=".46" stop-color="#cd8749" stop-opacity=".05"/><stop offset="1" stop-color="#071022" stop-opacity="0"/></radialGradient>
+<radialGradient id="mist"><stop stop-color="#ffcf9b" stop-opacity=".35"/><stop offset="1" stop-color="#ffcf9b" stop-opacity="0"/></radialGradient>
+<linearGradient id="rim" x1="14" y1="10" x2="82" y2="91" gradientUnits="userSpaceOnUse"><stop stop-color="#f2edff" stop-opacity=".86"/><stop offset=".24" stop-color="#a6baf2" stop-opacity=".35"/><stop offset=".54" stop-color="#cd8749" stop-opacity=".18"/><stop offset=".78" stop-color="#b19fe7" stop-opacity=".7"/><stop offset="1" stop-color="#c3e1fa" stop-opacity=".5"/></linearGradient>
+<linearGradient id="reflection" x1="21" y1="12" x2="65" y2="46" gradientUnits="userSpaceOnUse"><stop stop-color="#fff9ff" stop-opacity=".72"/><stop offset=".48" stop-color="#f1ecff" stop-opacity=".24"/><stop offset="1" stop-color="#d6c9ff" stop-opacity="0"/></linearGradient>
+<radialGradient id="core" cx=".44" cy=".42" r=".55"><stop stop-color="#ffe7cc" stop-opacity=".45"/><stop offset=".45" stop-color="#ee974a" stop-opacity=".35"/><stop offset="1" stop-color="#ee974a" stop-opacity="0"/></radialGradient>
+<clipPath id="orb"><circle cx="50" cy="50" r="43"/></clipPath>
+<filter id="shadow" x="-40%" y="-50%" width="180%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+</defs>
+<ellipse cx="51.8" cy="57" rx="40" ry="39" fill="#020511" opacity=".48" filter="url(#shadow)"/>
+<circle cx="50" cy="50" r="43.5" fill="url(#body)"/>
+<g clip-path="url(#orb)"><circle cx="50" cy="50" r="43" fill="url(#depth)"/><circle cx="50" cy="50" r="43" fill="url(#core)"/><g stroke-width=".65" stroke-linecap="round"><path d="M8 55C36 33 59 67 90 49" stroke="#ffcf9b" stroke-width="9" opacity="0.17"/><path d="M9 58C35 37 60 71 89 53" stroke="#ffcf9b" opacity="0.69"/><path d="M12 68C42 49 66 80 87 65" stroke="#b76f99" opacity="0.80"/></g>
+<path d="M13 38C19 14 45 3 66 14C42 10 24 22 20 42C18 46 14 44 13 38Z" fill="url(#reflection)"/>
+<path d="M20 29C31 14 51 10 66 17" stroke="#faf5ff" stroke-opacity=".37" stroke-width=".65"/>
+<path d="M28 83C47 95 72 83 83 65" stroke="#ffcf9b" stroke-opacity=".39" stroke-width=".9"/>
+<path d="M34 84C53 91 71 81 78 70" stroke="#b2a4e7" stroke-opacity=".32" stroke-width="2"/>
+</g>
+<circle cx="50" cy="50" r="43.7" stroke="url(#rim)" stroke-width="1.05"/>
+<path d="M9 42C11 25 24 11 42 7" stroke="#eef4ff" stroke-opacity=".5" stroke-width=".6" stroke-linecap="round"/>
+<path d="M65 91C80 85 89 73 93 58" stroke="#b9a8f0" stroke-opacity=".43" stroke-width=".65" stroke-linecap="round"/>
+</svg>

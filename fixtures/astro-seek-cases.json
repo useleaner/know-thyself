@@ -1,0 +1,409 @@
+{
+ "source": "Astro-Seek (horoscopes.astro-seek.com), Placidus, Nó e Lilith médios; perfis fictícios; coletado em 20/10/2026",
+ "cases": [
+  {
+   "name": "Alba — fictícia",
+   "birthDate": "1991-06-17",
+   "birthTime": "04:23",
+   "timezone": "America/Sao_Paulo",
+   "lat": -23.55,
+   "lon": -46.63333333333333,
+   "utc": "1991-06-17T07:23:00.000Z",
+   "bodies": [
+    {
+     "id": "sun",
+     "longitude": "85:37:40",
+     "house": 2,
+     "retrograde": false
+    },
+    {
+     "id": "moon",
+     "longitude": "151:56:48",
+     "house": 4,
+     "retrograde": false
+    },
+    {
+     "id": "mercury",
+     "longitude": "85:46:15",
+     "house": 2,
+     "retrograde": false
+    },
+    {
+     "id": "venus",
+     "longitude": "130:56:31",
+     "house": 3,
+     "retrograde": false
+    },
+    {
+     "id": "mars",
+     "longitude": "132:53:34",
+     "house": 3,
+     "retrograde": false
+    },
+    {
+     "id": "jupiter",
+     "longitude": "131:46:22",
+     "house": 3,
+     "retrograde": false
+    },
+    {
+     "id": "saturn",
+     "longitude": "306:05:01",
+     "house": 9,
+     "retrograde": true
+    },
+    {
+     "id": "uranus",
+     "longitude": "282:30:09",
+     "house": 8,
+     "retrograde": true
+    },
+    {
+     "id": "neptune",
+     "longitude": "285:55:30",
+     "house": 8,
+     "retrograde": true
+    },
+    {
+     "id": "pluto",
+     "longitude": "228:01:05",
+     "house": 6,
+     "retrograde": true
+    },
+    {
+     "id": "node",
+     "longitude": "290:16:29",
+     "house": 8,
+     "retrograde": true
+    },
+    {
+     "id": "lilith",
+     "longitude": "275:48:48",
+     "house": 8,
+     "retrograde": false
+    }
+   ],
+   "angles": {
+    "asc": "53:09:02",
+    "mc": "326:57:27"
+   },
+   "cusps": [
+    "53:09",
+    "82:38",
+    "114:01",
+    "146:57",
+    "179:09",
+    "207:59",
+    "233:09",
+    "262:38",
+    "294:01",
+    "326:57",
+    "359:09",
+    "27:59"
+   ]
+  },
+  {
+   "name": "Bento — fictício",
+   "birthDate": "1984-11-23",
+   "birthTime": "21:40",
+   "timezone": "Europe/Lisbon",
+   "lat": 38.71666666666667,
+   "lon": -9.133333333333333,
+   "utc": "1984-11-23T21:40:00.000Z",
+   "bodies": [
+    {
+     "id": "sun",
+     "longitude": "241:47:25",
+     "house": 5,
+     "retrograde": false
+    },
+    {
+     "id": "moon",
+     "longitude": "254:26:09",
+     "house": 5,
+     "retrograde": false
+    },
+    {
+     "id": "mercury",
+     "longitude": "263:23:04",
+     "house": 5,
+     "retrograde": false
+    },
+    {
+     "id": "venus",
+     "longitude": "281:53:50",
+     "house": 6,
+     "retrograde": false
+    },
+    {
+     "id": "mars",
+     "longitude": "306:07:20",
+     "house": 7,
+     "retrograde": false
+    },
+    {
+     "id": "jupiter",
+     "longitude": "283:04:50",
+     "house": 6,
+     "retrograde": false
+    },
+    {
+     "id": "saturn",
+     "longitude": "230:34:29",
+     "house": 4,
+     "retrograde": false
+    },
+    {
+     "id": "uranus",
+     "longitude": "253:04:16",
+     "house": 5,
+     "retrograde": false
+    },
+    {
+     "id": "neptune",
+     "longitude": "270:04:46",
+     "house": 5,
+     "retrograde": false
+    },
+    {
+     "id": "pluto",
+     "longitude": "213:13:42",
+     "house": 4,
+     "retrograde": false
+    },
+    {
+     "id": "node",
+     "longitude": "57:09:53",
+     "house": 11,
+     "retrograde": true
+    },
+    {
+     "id": "lilith",
+     "longitude": "8:53:43",
+     "house": 9,
+     "retrograde": false
+    }
+   ],
+   "angles": {
+    "asc": "123:04:29",
+    "mc": "20:28:06"
+   },
+   "cusps": [
+    "123:04",
+    "144:00",
+    "169:10",
+    "200:28",
+    "236:40",
+    "272:14",
+    "303:04",
+    "324:00",
+    "349:10",
+    "20:28",
+    "56:40",
+    "92:14"
+   ]
+  },
+  {
+   "name": "Cora — fictícia",
+   "birthDate": "2002-04-09",
+   "birthTime": "13:15",
+   "timezone": "Asia/Tokyo",
+   "lat": 35.68333333333333,
+   "lon": 139.7,
+   "utc": "2002-04-09T04:15:00.000Z",
+   "bodies": [
+    {
+     "id": "sun",
+     "longitude": "19:08:16",
+     "house": 9,
+     "retrograde": false
+    },
+    {
+     "id": "moon",
+     "longitude": "339:32:21",
+     "house": 7,
+     "retrograde": false
+    },
+    {
+     "id": "mercury",
+     "longitude": "21:06:33",
+     "house": 9,
+     "retrograde": false
+    },
+    {
+     "id": "venus",
+     "longitude": "39:43:25",
+     "house": 9,
+     "retrograde": false
+    },
+    {
+     "id": "mars",
+     "longitude": "56:52:56",
+     "house": 10,
+     "retrograde": false
+    },
+    {
+     "id": "jupiter",
+     "longitude": "97:55:32",
+     "house": 11,
+     "retrograde": false
+    },
+    {
+     "id": "saturn",
+     "longitude": "71:10:13",
+     "house": 10,
+     "retrograde": false
+    },
+    {
+     "id": "uranus",
+     "longitude": "327:39:22",
+     "house": 7,
+     "retrograde": false
+    },
+    {
+     "id": "neptune",
+     "longitude": "310:39:41",
+     "house": 6,
+     "retrograde": false
+    },
+    {
+     "id": "pluto",
+     "longitude": "257:31:28",
+     "house": 4,
+     "retrograde": true
+    },
+    {
+     "id": "node",
+     "longitude": "81:09:29",
+     "house": 11,
+     "retrograde": true
+    },
+    {
+     "id": "lilith",
+     "longitude": "355:41:03",
+     "house": 8,
+     "retrograde": false
+    }
+   ],
+   "angles": {
+    "asc": "139:22:21",
+    "mc": "43:08:29"
+   },
+   "cusps": [
+    "139:22",
+    "162:37",
+    "190:32",
+    "223:08",
+    "257:38",
+    "290:13",
+    "319:22",
+    "342:37",
+    "10:32",
+    "43:08",
+    "77:38",
+    "110:13"
+   ]
+  },
+  {
+   "name": "Dário — fictício",
+   "birthDate": "1978-08-14",
+   "birthTime": "00:20",
+   "timezone": "Australia/Sydney",
+   "lat": -33.86666666666667,
+   "lon": 151.2,
+   "utc": "1978-08-13T14:20:00.000Z",
+   "bodies": [
+    {
+     "id": "sun",
+     "longitude": "140:28:41",
+     "house": 3,
+     "retrograde": false
+    },
+    {
+     "id": "moon",
+     "longitude": "253:16:15",
+     "house": 7,
+     "retrograde": false
+    },
+    {
+     "id": "mercury",
+     "longitude": "149:47:16",
+     "house": 4,
+     "retrograde": true
+    },
+    {
+     "id": "venus",
+     "longitude": "185:47:56",
+     "house": 5,
+     "retrograde": false
+    },
+    {
+     "id": "mars",
+     "longitude": "185:45:10",
+     "house": 5,
+     "retrograde": false
+    },
+    {
+     "id": "jupiter",
+     "longitude": "115:22:17",
+     "house": 3,
+     "retrograde": false
+    },
+    {
+     "id": "saturn",
+     "longitude": "152:12:25",
+     "house": 4,
+     "retrograde": false
+    },
+    {
+     "id": "uranus",
+     "longitude": "222:32:53",
+     "house": 6,
+     "retrograde": false
+    },
+    {
+     "id": "neptune",
+     "longitude": "255:36:05",
+     "house": 7,
+     "retrograde": true
+    },
+    {
+     "id": "pluto",
+     "longitude": "194:35:03",
+     "house": 5,
+     "retrograde": false
+    },
+    {
+     "id": "node",
+     "longitude": "178:39:41",
+     "house": 5,
+     "retrograde": true
+    },
+    {
+     "id": "lilith",
+     "longitude": "113:16:42",
+     "house": 3,
+     "retrograde": false
+    }
+   ],
+   "angles": {
+    "asc": "48:16:47",
+    "mc": "325:36:07"
+   },
+   "cusps": [
+    "48:16",
+    "77:56",
+    "110:58",
+    "145:36",
+    "177:52",
+    "205:17",
+    "228:16",
+    "257:56",
+    "290:58",
+    "325:36",
+    "357:52",
+    "25:17"
+   ]
+  }
+ ]
+}

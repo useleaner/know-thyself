@@ -1,0 +1,161 @@
+.login-page { height: 100dvh; min-height: 0; overflow: hidden; align-items: start; }
+.login-page .device { container: login-shell / size; height: var(--login-height, 100dvh); }
+.login-screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  justify-items: center;
+  gap: clamp(12px, 2.5cqh, 24px);
+  overflow: hidden;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(20px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #080d2320 15%, #080d2370 50%, #080d23ed 100%);
+  text-align: center;
+}
+.login-content { container-type: size; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(8px, 3cqh, 24px); width: 100%; max-width: 340px; min-height: 0; }
+.login-mark { flex: 0 1 154px; width: 88px; min-height: 32px; max-height: 154px; }
+.login-content h1 { flex: none; margin: 0; color: #f8e6c7; font-size: clamp(28px, 16cqh, 58px); line-height: 1; letter-spacing: -.035em; }
+.login-description { flex: none; margin: 0; max-width: 29ch; font-size: clamp(12px, 4cqh, 14px); line-height: 1.75; color: #e2def2; text-wrap: balance; }
+.login-actions { width: 100%; max-width: 340px; min-height: 0; }
+.google-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px;
+  border: 1px solid #747775;
+  border-radius: 24px;
+  background: #fff;
+  color: #1f1f1f;
+  font: 500 14px/20px Space, sans-serif;
+  transition: background 180ms ease-out;
+}
+.google-button img { flex-shrink: 0; object-fit: contain; }
+.google-button:hover:not(:disabled) { background: #edf1fb; }
+.google-button:active:not(:disabled) { background: #e2e8f5; }
+.google-button:disabled { cursor: wait; opacity: .7; }
+.google-button:focus-visible { outline: 2px solid #f0caa1; outline-offset: 5px; }
+.login-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: #c9c2e0; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+.login-divider::before, .login-divider::after { content: ''; flex: 1; height: 1px; background: #c1b9dc40; }
+.login-divider[hidden], .email-login[hidden] { display: none; }
+.email-login { display: grid; gap: 10px; text-align: left; }
+.email-login label { color: #e2def2; font-size: 12px; overflow-wrap: anywhere; }
+.email-login label span { color: #f8e6c7; }
+.email-login input { width: 100%; min-height: 48px; padding: 12px 18px; border: 1px solid #c1b9dc66; border-radius: 24px; background: linear-gradient(145deg,#d0d3ee1f,#0a1230b8 60%); box-shadow: inset 0 1px 0 #ffffff1c; backdrop-filter: blur(22px) saturate(140%); -webkit-backdrop-filter: blur(22px) saturate(140%); color: var(--ink); caret-color: var(--gold); font: 400 16px/1.2 Space, sans-serif; }
+.email-login input::placeholder { color: #a9a3c4; }
+.email-login input:focus-visible { outline: 2px solid #f0caa1; outline-offset: 2px; border-color: transparent; }
+#login-code { letter-spacing: .2em; text-align: center; font-variant-numeric: tabular-nums; }
+.email-button { min-height: 48px; border: 1px solid #f0caa1; border-radius: 24px; background: #f0caa1; color: #141a33; font: 600 14px/20px Space, sans-serif; transition: background 180ms ease-out; }
+.email-button:hover:not(:disabled) { background: #f6dcbc; }
+.email-button:disabled { cursor: wait; opacity: .7; }
+.email-button:focus-visible, .link-button:focus-visible { outline: 2px solid #f0caa1; outline-offset: 4px; }
+.code-links { display: flex; justify-content: space-between; gap: 12px; }
+.link-button { min-height: 44px; padding: 0; border: 0; background: none; color: #f0caa1; font: 400 12px Space, sans-serif; text-decoration: underline; text-underline-offset: 3px; }
+.link-button:disabled { color: #a9a3c4; text-decoration: none; cursor: default; }
+.login-message { margin: 14px 0 0; color: #ece2f8; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.login-footer { margin: 0; color: #d7d4ed; font-size: 11px; line-height: 1.5; }
+.login-no-script { color: #f0caa1; font-size: 12px; }
+.session-status { position: absolute; inset: 40% 24px auto; color: #e2def2; text-align: center; font-size: 14px; line-height: 1.7; }
+@media (prefers-reduced-motion: reduce) { .google-button, .email-button { transition: none; } }
+.login-footer a { color: #f0caa1; text-underline-offset: 3px; }
+.legal .notice { margin: 20px 0 0; padding: 12px 14px; border: 1px solid #f0caa1; border-radius: 12px; background: #f0caa11a; color: #f8e6c7; font-size: 14px; line-height: 1.6; }
+.legal .notice strong { color: #f8e6c7; }
+.legal code { overflow-wrap: anywhere; }
+
+.login-message:empty { display: none; }
+.login-gate { min-width: 0; margin: 12px 0 0; padding: 0; border: 0; }
+.login-gate:disabled .google-button, .login-gate:disabled .email-button { opacity: .4; cursor: default; }
+.login-accept { display: flex; align-items: center; gap: 4px; text-align: left; color: #e2def2; font-size: 11.5px; line-height: 1.5; }
+.accept-check { position: relative; display: grid; place-items: center; width: 44px; min-height: 44px; flex: none; cursor: pointer; }
+.accept-check input { appearance: none; position: absolute; inset: 0; width: 44px; height: 44px; margin: 0; cursor: pointer; border-radius: 50%; font-size: 16px; }
+.accept-dot { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #a899ca; border-radius: 50%; background: #0b112999; pointer-events: none; }
+.accept-dot svg { width: 14px; height: 14px; fill: none; stroke: var(--night); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.accept-check input:checked + .accept-dot { background: var(--gold); border-color: var(--gold); }
+.accept-check input:checked + .accept-dot svg { opacity: 1; }
+.accept-check input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.accept-copy { display: flex; flex-wrap: wrap; align-items: center; column-gap: 3px; }
+.accept-copy label { cursor: pointer; }
+.accept-copy a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; color: var(--gold); text-underline-offset: 3px; }
+.accept-copy a:hover { color: #f8e6c7; }
+.accept-copy a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+/* A entrada mantém o cosmos imóvel. */
+.login-page .nebula { animation: none; }
+
+.login-screen:has(#code-login:not([hidden])) #google-login,
+.login-screen:has(#code-login:not([hidden])) #email-divider { display: none; }
+@container login-shell (max-height: 650px) {
+  .login-screen { padding-block: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-bottom)); gap: 12px; }
+  .login-description { display: none; }
+}
+@container login-shell (max-width: 350px) {
+  .login-screen { padding-inline: 16px; }
+  .login-accept { font-size: 11px; }
+}
+@container login-shell (max-height: 450px) {
+  .login-screen { grid-template-rows: 1fr; }
+  .login-content, .login-footer { display: none; }
+  .login-actions { align-self: start; }
+}
+
+/* Splash: o símbolo se desenha na abertura. Estilo base = estado final; as animações só descrevem a entrada.
+   --elapsed vem do script inline e continua a abertura entre login e universo sem reiniciar. */
+@property --reveal { syntax: '<length>'; inherits: false; initial-value: -80px; }
+.splash { --elapsed: 0ms; --ease: cubic-bezier(.65,0,.35,1); --spring: cubic-bezier(.34,1.56,.64,1); position: fixed; inset: 0; z-index: 1000; overflow: hidden; background: var(--night); animation: kt-failsafe 1ms 15s forwards; }
+.splash-halo { position: absolute; left: 50%; top: 44%; width: 640px; height: 640px; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle, #f0caa11f 0, #7b68b524 26%, #080d2300 62%); animation: kt-halo 1800ms ease-out calc(0ms - var(--elapsed)) both, kt-halo-breathe 6s ease-in-out calc(1800ms - var(--elapsed)) infinite alternate; }
+.splash-stage { position: absolute; left: 50%; top: 44%; width: 92px; height: 161px; transform: translate(-50%, -50%); }
+.splash-mark { position: relative; display: block; width: 100%; height: 100%; overflow: visible; }
+.splash-mark * { transform-box: fill-box; transform-origin: center; }
+.splash-rings circle { stroke-dasharray: 188.5; animation: kt-draw 950ms var(--ease) calc(var(--at) - var(--elapsed)) both; }
+.ring-mid { --at: 120ms; rotate: -90deg; }
+.ring-top { --at: 380ms; rotate: 90deg; }
+.ring-bottom { --at: 380ms; rotate: -90deg; scale: -1 1; }
+.splash-ticks line { animation: kt-tick 460ms cubic-bezier(.2,.8,.2,1) calc(720ms + var(--i) * 42ms - var(--elapsed)) both; }
+.splash-nodes circle { animation: kt-pop 620ms var(--spring) calc(920ms + var(--i) * 120ms - var(--elapsed)) both; }
+.splash-mark .splash-hex-spin, .splash-mark .splash-hex, .splash-mark .splash-core, .splash-mark .splash-glow { transform-box: view-box; transform-origin: 40px 70px; }
+.splash-hex { animation: kt-hex 1000ms cubic-bezier(.2,.9,.25,1.08) calc(1000ms - var(--elapsed)) both; }
+.splash-hex-spin { animation: kt-spin 48s linear calc(2000ms - var(--elapsed)) infinite; }
+.splash-core { animation: kt-ignite 720ms var(--spring) calc(1180ms - var(--elapsed)) both, kt-breathe 2.6s ease-in-out calc(1900ms - var(--elapsed)) infinite alternate; }
+.splash-glow { animation: kt-glow 900ms ease-out calc(1180ms - var(--elapsed)) both, kt-glow-breathe 2.6s ease-in-out calc(2080ms - var(--elapsed)) infinite alternate; }
+.splash-wave { position: absolute; left: 50%; top: 50%; width: 260px; height: 260px; border: 1px solid #f0caa1; border-radius: 50%; opacity: 0; translate: -50% -50%; animation: kt-wave 1500ms cubic-bezier(.15,.7,.3,1) calc(1200ms - var(--elapsed)) both; }
+.splash-word { position: absolute; left: 0; right: 0; top: calc(44% + 104px); margin: 0; color: #f8e6c7; font: 600 30px/1.1 Bricolage, sans-serif; letter-spacing: -.03em; text-align: center; }
+.splash-word > span { display: inline-block; overflow: hidden; padding: 0 .04em .12em; vertical-align: top; }
+.splash-word > span > span { display: inline-block; background: linear-gradient(100deg, #f8e6c7 42%, #fffaf0 50%, #f8e6c7 58%) 100% 0 / 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: kt-rise 950ms cubic-bezier(.2,.8,.2,1) calc(1300ms + var(--w) * 110ms - var(--elapsed)) both, kt-shimmer 1600ms ease-in-out calc(1900ms + var(--w) * 110ms - var(--elapsed)) both; }
+
+@keyframes kt-draw { from { stroke-dashoffset: 188.5; } to { stroke-dashoffset: 0; } }
+@keyframes kt-tick { from { opacity: 0; scale: .1; } }
+@keyframes kt-pop { from { opacity: 0; scale: 0; } }
+@keyframes kt-hex { from { opacity: 0; rotate: -150deg; scale: .3; } }
+@keyframes kt-spin { to { rotate: 360deg; } }
+@keyframes kt-ignite { 0% { opacity: 0; scale: 0; } 55% { opacity: 1; scale: 1.6; } }
+@keyframes kt-breathe { to { scale: 1.1; } }
+@keyframes kt-glow { 0% { opacity: 0; scale: .2; } 45% { opacity: 1; scale: 1.8; } 100% { opacity: .8; scale: 1; } }
+@keyframes kt-glow-breathe { from { opacity: .8; } to { opacity: .45; scale: 1.25; } }
+@keyframes kt-wave { 0% { opacity: .9; scale: .03; } 100% { opacity: 0; scale: 1; } }
+@keyframes kt-halo { from { opacity: 0; scale: .6; } }
+@keyframes kt-halo-breathe { to { scale: 1.12; opacity: .75; } }
+@keyframes kt-rise { from { translate: 0 108%; } }
+@keyframes kt-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@keyframes kt-failsafe { to { visibility: hidden; } }
+
+/* Saída no universo: o núcleo abre um círculo que revela o app. */
+.splash[data-exit] { pointer-events: none; }
+.splash[data-exit='reveal'] { -webkit-mask-image: radial-gradient(circle at 50% 44%, transparent var(--reveal), #000 calc(var(--reveal) + 80px)); mask-image: radial-gradient(circle at 50% 44%, transparent var(--reveal), #000 calc(var(--reveal) + 80px)); animation: kt-reveal 1100ms cubic-bezier(.7,0,.2,1) forwards; }
+.splash[data-exit='reveal'] .splash-stage { animation: kt-leave-mark 700ms cubic-bezier(.5,0,.75,0) forwards; }
+.splash[data-exit] .splash-word { transition: opacity 350ms ease-in, translate 350ms ease-in; opacity: 0; translate: 0 10px; }
+@keyframes kt-reveal { from { --reveal: -80px; } 85% { opacity: 1; } to { --reveal: 150vmax; opacity: 0; } }
+@keyframes kt-leave-mark { to { transform: translate(-50%, -50%) scale(2.4); opacity: 0; } }
+
+/* Saída no login: o símbolo voa até o símbolo do login e o fundo se dissolve. */
+.splash[data-exit='morph'] { background: #080d2300; transition: background-color 800ms ease-in-out; }
+.splash[data-exit='morph'] .splash-halo { opacity: 0; transition: opacity 600ms ease-out; animation: none; }
+.splash[data-exit='morph'] .splash-stage { transform: translate(calc(-50% + var(--fx, 0px)), calc(-50% + var(--fy, 0px))) scale(var(--fs, 1)); transition: transform 900ms var(--ease); }
+.splash[data-exit='morph'] .splash-core { animation: kt-settle 500ms ease-out forwards; }
+.splash[data-exit='morph'] .splash-glow { animation: kt-fade 500ms ease-out forwards; }
+@keyframes kt-settle { from { scale: 1.05; } }
+@keyframes kt-fade { from { opacity: .7; } to { opacity: 0; } }
+.login-page:has(#splash) .login-mark { visibility: hidden; }
+.login-page:has(.splash[data-exit='morph']) :is(.login-content h1, .login-description, .login-actions, .login-footer) { animation: kt-enter 800ms cubic-bezier(.2,.8,.2,1) calc(280ms + var(--n) * 80ms) both; }
+.login-content h1 { --n: 0; } .login-description { --n: 1; } .login-actions { --n: 2; } .login-footer { --n: 3; }
+@keyframes kt-enter { from { opacity: 0; translate: 0 14px; } }

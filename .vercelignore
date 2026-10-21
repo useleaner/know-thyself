@@ -1,0 +1,8 @@
+previews
+*.mjs
+*.md
+assets/**/*.json
+vendor/*.md
+.DS_Store
+.env*
+fixtures

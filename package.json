@@ -1,0 +1,12 @@
+{
+  "name": "know-thyself",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "test": "node --test *.test.mjs",
+    "db:migrate": "node --env-file=.env.local scripts/migrate.cjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0"
+  }
+}

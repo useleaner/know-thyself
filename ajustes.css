@@ -1,0 +1,69 @@
+.settings-body { display: block; isolation: isolate; background: var(--night); }
+.settings-body .atmosphere { position: fixed; }
+.settings-body .atmosphere::after { content: ''; position: absolute; inset: 0; background: linear-gradient(#080d2399, #080d23cc); }
+.settings-body .nebula { animation: none; }
+.settings-page { width: min(100%, 440px); min-height: 100svh; margin-inline: auto; padding: max(8px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom)); }
+.settings-header { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; min-height: 56px; margin-bottom: 12px; }
+.settings-header > a { display: grid; place-items: center; width: 44px; height: 44px; color: #e1dcfa; border-radius: 50%; }
+.settings-header svg { width: 22px; height: 22px; }
+.settings-header h1 { margin: 0; color: #f8e6c7; font: 500 19px/1.3 Bricolage, Space, sans-serif; letter-spacing: -.01em; line-height: 1.3; text-align: center; }
+.settings-page svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.settings-caption { max-width: none; margin: 0 0 8px 4px; color: #e2c896; font: 400 11px/1.5 Space, sans-serif; letter-spacing: .14em; text-transform: uppercase; }
+.settings-group, .settings-segment { min-width: 0; padding: 0 0 0 14px; margin: 0 0 24px; list-style: none; border: 0; border-radius: 20px; background: var(--veil); -webkit-backdrop-filter: blur(16px) saturate(1.15); backdrop-filter: blur(16px) saturate(1.15); box-shadow: none; }
+.settings-group { position: relative; }
+.settings-group::before { content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 1px; background: var(--hairline); pointer-events: none; }
+.settings-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 0 12px 0 0; border: 0; border-bottom: 1px solid #ffffff14; background: transparent; color: var(--ink); font: 400 15px/1.4 Space, sans-serif; text-align: left; text-decoration: none; }
+.settings-row:active, .settings-option:active { background: #d0d3ee15; }
+.settings-label { flex: 1; min-width: 0; }
+.settings-value { flex: none; color: #c8c1df; font-size: 14px; }
+.settings-icon { width: 20px; height: 20px; color: #e7c891; stroke-width: 1.4 !important; }
+.settings-chevron { width: 14px; height: 14px; color: #c8c1df; }
+.settings-option { position: relative; display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 9px 14px 9px 0; border-bottom: 1px solid; border-image: var(--hairline-left) 1; cursor: pointer; }
+.settings-option:last-child { border-bottom: 0; }
+.option-copy { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 15px; }
+.option-copy small { color: #c8c1df; font-size: 12px; line-height: 1.45; }
+.settings-check { width: 20px; height: 20px; color: var(--gold); opacity: 0; }
+.settings-option:has(input:checked) .settings-check { opacity: 1; }
+.settings-option input, .settings-segment input, .switch-row input { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; }
+.settings-note { margin: -12px 4px 0; color: #c8c1df; font-size: 12px; line-height: 1.5; }
+.settings-copy { margin: 16px 4px 0; color: var(--soft); font-size: 14px; line-height: 1.65; }
+.settings-segment { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px; padding: 4px; margin: 0; border-radius: 24px; }
+.settings-segment label { position: relative; display: grid; place-items: center; min-height: 44px; border-radius: 20px; color: var(--soft); cursor: pointer; font-size: 15px; }
+.settings-segment label:has(input:checked) { background: radial-gradient(60% 90% at 50% 100%, #f1d9a830, transparent 75%); box-shadow: inset 0 0 0 1px #f1d9a880, 0 0 14px #f1d9a826; color: #fff1d6; font-weight: 500; }
+.switch-row { position: relative; min-height: 52px; padding-right: 14px; cursor: pointer; }
+.switch-row > input { position: absolute; }
+.settings-switch { position: relative; width: 48px; height: 28px; margin-left: auto; flex: none; border: 1px solid #e9d2a840; border-radius: 14px; transition: background .12s; }
+.settings-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--soft); transition: transform .12s; }
+.switch-row:has(input:checked) .settings-switch { background: #f1d9a833; border-color: #f1d9a8; box-shadow: 0 0 12px #f1d9a82e; }
+.switch-row:has(input:checked) .settings-switch::after { transform: translateX(20px); background: #fff1d6; box-shadow: 0 0 8px #f1d9a8aa; }
+.point-glyph { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: 1px solid #a899ca80; border-radius: 50%; color: var(--gold); font-family: 'Apple Symbols', 'Segoe UI Symbol', serif; font-size: 17px; }
+.manual-orbs { margin-top: 20px; }
+.orb-stepper { display: flex; align-items: center; flex: none; }
+.orb-stepper button { width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #e2def2; font-size: 20px; }
+.orb-stepper button:active:not(:disabled) { background: #d0d3ee15; }
+.orb-stepper button:disabled { opacity: .35; cursor: default; }
+.orb-stepper output { min-width: 32px; color: #f8e6c7; font-variant-numeric: tabular-nums; text-align: center; }
+#status { margin: 0 4px; color: var(--gold); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+#status:empty { display: none; }
+.settings-page :is(a, button):focus-visible, .settings-option:has(input:focus-visible), .settings-segment label:has(input:focus-visible), .switch-row:has(input:focus-visible) { outline: 2px solid var(--gold); outline-offset: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .settings-switch, .settings-switch::after { transition: none; } }
+@media (max-width: 350px) { .settings-page { padding-inline: 12px; } .settings-row { gap: 8px; font-size: 14px; } .settings-value { font-size: 12px; } }
+
+/* Ajustes numa só página: cada linha do grupo abre o próprio painel. */
+.settings-group { padding: 0; }
+.settings-item { border-bottom: 1px solid; border-image: var(--hairline-left) 1; }
+.settings-group > .settings-item:last-child { border-bottom: 0; }
+.settings-toggle { padding: 0 14px; border-bottom: 0; cursor: pointer; }
+.settings-toggle .settings-chevron { transition: transform .15s; }
+.settings-toggle[aria-expanded='true'] .settings-chevron { transform: rotate(180deg); }
+.settings-panel { padding: 4px 14px 16px; }
+.settings-panel .settings-row { padding-right: 0; }
+.settings-options, .settings-flat { min-width: 0; padding: 0; margin: 0 0 8px; border: 0; list-style: none; }
+.settings-panel .settings-option { padding-right: 0; }
+.settings-panel .settings-caption { margin: 16px 0 4px; }
+.settings-panel .settings-segment { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.settings-panel .manual-orbs { margin-top: 8px; }
+.settings-panel .settings-note { margin: 8px 0 0; }
+.settings-panel .settings-copy { margin: 14px 0 0; }
+@media (prefers-reduced-motion: reduce) { .settings-toggle .settings-chevron { transition: none; } }

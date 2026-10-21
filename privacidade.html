@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <script>try{var l=localStorage.getItem('know-thyself.lang');if(l==='en'||(l!=='pt-BR'&&!/^pt\b/i.test(navigator.language||'pt')))document.documentElement.classList.add('i18n-pending')}catch(e){}</script>
+  <style>.i18n-pending main{visibility:hidden;animation:i18n-show 0s 3s forwards}@keyframes i18n-show{to{visibility:visible}}</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#080d23">
+  <title>Política de Privacidade — Know Thyself</title>
+  <link rel="stylesheet" href="style.css?v=20261020-veu4">
+  <link rel="stylesheet" href="login.css">
+  <style>
+    body{display:block;background:#080d23 url('./assets/nebula.webp') center top/cover fixed;overflow:auto}
+    .legal{width:min(100%,640px);margin-inline:auto;min-height:100svh;padding:max(24px,env(safe-area-inset-top)) 24px max(40px,env(safe-area-inset-bottom));background:#080d23e8;text-align:left}
+    .legal h1{font-size:32px;line-height:1.15;color:#f8e6c7}
+    .legal h2{max-width:none;font-size:20px;margin:32px 0 8px;color:#f8e6c7}
+    .legal p,.legal li{font-size:15px;line-height:1.7;color:#e2def2}
+    .legal ul{padding-left:20px}
+    .legal a{color:#f0caa1;text-underline-offset:4px}
+    .legal a:focus-visible{outline:2px solid #f0caa1;outline-offset:4px}
+    .legal .meta{color:#d7d4ed;font-size:13px}
+    .legal .nav{display:flex;gap:16px;flex-wrap:wrap;margin-top:40px}
+  </style>
+<script>addEventListener('gesturestart',e=>e.preventDefault())</script>
+</head>
+<body>
+  <main class="legal">
+    <a href="./">&larr; Voltar ao login</a>
+    <h1>Política de Privacidade</h1>
+    <p class="meta">Última atualização: 18/10/2026 · Versão preliminar, a ser revisada por responsável jurídico [CONFIRMAR].</p>
+    <p class="notice" role="note"><strong>Aviso importante:</strong> o conteúdo do app é simbólico e serve para autoconhecimento e reflexão. Não é aconselhamento médico, psicológico, financeiro ou jurídico.</p>
+
+    <p>Esta política explica, conforme a Lei Geral de Proteção de Dados (LGPD, Lei 13.709/2018), quais dados o Know Thyself trata e como.</p>
+
+    <h2>1. Controlador e contato</h2>
+    <p>Controlador: [CONFIRMAR nome/razão social e CPF/CNPJ]. Contato para privacidade e exercício de direitos: [E-MAIL DE CONTATO]. Encarregado (DPO): [CONFIRMAR, se aplicável].</p>
+
+    <h2>2. Quais dados tratamos</h2>
+    <ul>
+      <li><strong>Dados de login (Google):</strong> ao entrar, recebemos do Google seu identificador de conta, e-mail (verificado) e nome. Usamos para identificar você e conferir se seu e-mail está na lista de contas autorizadas da prévia. Pedimos apenas os escopos "openid, email e profile" (identidade básica); não acessamos Gmail, Drive, contatos ou agenda.</li>
+      <li><strong>Perfis de nascimento (página "Dados de nascimento"):</strong> nome, data, hora (ou indicação de horário desconhecido) e cidade/estado/país de nascimento, de você e de outras pessoas que você cadastrar. A data, a hora e o local de nascimento podem permitir identificar pessoas e devem ser tratados com cuidado.</li>
+      <li><strong>Busca de cidade (Open-Meteo):</strong> ao digitar a cidade de nascimento, o texto digitado é enviado à API de geocodificação da Open-Meteo para sugerir lugares e obter coordenadas e fuso horário. Não enviamos nome, data, hora de nascimento nem identificadores de conta, mas o provedor recebe, como em qualquer requisição, o endereço IP e dados técnicos do navegador.</li>
+      <li><strong>Cookies de sessão:</strong> guardam seu identificador Google, e-mail e nome, conforme a seção 3.</li>
+      <li><strong>Dados técnicos de hospedagem:</strong> o provedor pode registrar dados de acesso (como IP, data/hora e navegador) nos registros de requisição [CONFIRMAR configuração e retenção de logs na Vercel].</li>
+    </ul>
+    <p>Não coletamos dados de pagamento, localização do aparelho, contatos, nem usamos ferramentas de análise ou publicidade [CONFIRMAR antes de qualquer inclusão].</p>
+
+    <h2>3. Onde ficam os dados</h2>
+    <ul>
+      <li><strong>Perfis de nascimento:</strong> ficam somente no armazenamento local (localStorage) do seu navegador, neste aparelho. Não são enviados aos nossos servidores nem vinculados à conta Google. Quem usar o mesmo navegador e perfil de usuário do aparelho pode lê-los; limpar os dados do site os apaga e eles não são recuperáveis por nós.</li>
+      <li><strong>Sessão de login:</strong> um cookie assinado guarda seu identificador, e-mail e nome por até 8 horas. Não mantemos banco de dados de usuários [CONFIRMAR se isso mudar].</li>
+      <li><strong>Hospedagem:</strong> o app é servido pela Vercel Inc. (Estados Unidos), o que pode envolver transferência internacional de dados (LGPD, art. 33) [CONFIRMAR localização das funções e salvaguardas]. O login é intermediado pelo Google.</li>
+    </ul>
+
+    <h2>4. Cookies e armazenamento</h2>
+    <ul>
+      <li><code>kt_session</code>: cookie estritamente necessário, HttpOnly, SameSite=Lax e Secure em HTTPS; guarda a sessão por até 8 horas ou até você sair.</li>
+      <li><code>kt_oauth</code>: cookie temporário (10 minutos) com dados de segurança do processo de login; é removido ao concluir.</li>
+      <li><code>localStorage</code> (<code>know-thyself.birth-profiles.v1</code>): seus perfis de nascimento, até você excluí-los ou limpar os dados do site.</li>
+    </ul>
+    <p>Não usamos cookies de publicidade ou rastreamento. Por serem estritamente necessários, não pedimos consentimento de cookies [CONFIRMAR].</p>
+
+    <h2>5. Finalidades e bases legais</h2>
+    <ul>
+      <li>Autenticar e controlar o acesso à prévia: execução de contrato/procedimentos preliminares (art. 7º, V) e legítimo interesse em segurança (art. 7º, IX).</li>
+      <li>Guardar perfis de nascimento no seu aparelho para exibir o app: execução do serviço que você solicita (art. 7º, V) e, quando cabível, consentimento (art. 7º, I).</li>
+      <li>Segurança e funcionamento da hospedagem: legítimo interesse (art. 7º, IX).</li>
+    </ul>
+    <p>Dados de terceiros que você cadastra são tratados sob sua responsabilidade; obtenha o consentimento deles. As bases legais acima devem ser validadas [CONFIRMAR com assessoria jurídica].</p>
+
+    <h2>6. Compartilhamento</h2>
+    <p>Não vendemos dados. Compartilhamos o necessário com Google (autenticação), Vercel (hospedagem) e Open-Meteo (busca de cidades: somente o texto da cidade digitado, para sugerir lugares e fornecer coordenadas e fuso; sem cadastro de sua parte; termos em <a href="https://open-meteo.com/en/terms" rel="noopener noreferrer" target="_blank">open-meteo.com/en/terms</a>). A finalidade é calcular o mapa com o local correto; a base legal é a execução do serviço que você solicita (art. 7º, V) [CONFIRMAR]. A Open-Meteo pode ter servidores fora do Brasil (transferência internacional, art. 33). Algumas referências de estudo no app são links para sites de terceiros (por exemplo, otohungary.org e tarrdaniel.com); ao abri-los, valem as políticas desses sites. Podemos divulgar dados se a lei ou ordem judicial exigir.</p>
+
+    <h2>7. Retenção e exclusão</h2>
+    <p>Perfis: até você excluí-los (botão "Excluir este perfil") ou limpar os dados do site. Sessão: até 8 horas ou até sair da conta. Registros do provedor: conforme a política da Vercel [CONFIRMAR]. Para pedir exclusão de qualquer dado que tenhamos, escreva para [E-MAIL DE CONTATO].</p>
+
+    <h2>8. Seus direitos</h2>
+    <p>Nos termos do art. 18 da LGPD, você pode solicitar confirmação do tratamento, acesso, correção, anonimização, bloqueio ou eliminação de dados desnecessários, portabilidade, informação sobre compartilhamento, revogação de consentimento e oposição. Como os perfis ficam só no seu navegador, você mesmo pode vê-los, editá-los e excluí-los na página "Dados de nascimento". Pedidos: [E-MAIL DE CONTATO]. Você também pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD).</p>
+
+    <h2>9. Segurança</h2>
+    <p>A sessão usa cookie assinado (HMAC), HttpOnly e, em HTTPS, Secure; o login usa OAuth com PKCE. Nenhum sistema é totalmente seguro. Os perfis no navegador não são criptografados.</p>
+
+    <h2>10. Crianças e adolescentes</h2>
+    <p>Uso destinado a maiores de [CONFIRMAR: 18] anos. Dados de menores só devem ser cadastrados com consentimento específico de um responsável (LGPD, art. 14).</p>
+
+    <h2>11. Natureza do conteúdo</h2>
+    <p>O conteúdo astrológico e kabalístico é simbólico e de entretenimento e autoconhecimento; não é aconselhamento médico, financeiro ou psicológico. Veja os Termos de Uso.</p>
+
+    <h2>12. Alterações</h2>
+    <p>Podemos atualizar esta política; a data no topo indica a versão vigente.</p>
+
+    <p class="nav"><a href="termos.html">Termos de Uso</a><a href="./">Voltar ao login</a></p>
+  </main>
+  <script type="module" src="i18n.js"></script>
+</body>
+</html>
