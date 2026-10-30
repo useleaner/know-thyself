@@ -804,6 +804,8 @@ export default {
   "Segurança e funcionamento da hospedagem: legítimo interesse (art. 7º, IX).": "Security and operation of hosting: legitimate interest (art. 7, IX).",
   "6. Compartilhamento": "6. Sharing",
   "open-meteo.com/en/terms": "open-meteo.com/en/terms",
+  "Código-fonte aberto:": "Open source code:",
+  "github.com/defiphill/know-thyself": "github.com/defiphill/know-thyself",
   "7. Retenção e exclusão": "7. Retention and deletion",
   "8. Seus direitos": "8. Your rights",
   "9. Segurança": "9. Security",
