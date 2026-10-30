@@ -19,5 +19,11 @@
         { "key": "Content-Type", "value": "application/manifest+json" }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/cron-notifications.js": {
+      "includeFiles": "vendor/swisseph/{swisseph.wasm,seas_18.se1}",
+      "maxDuration": 60
+    }
+  }
 }

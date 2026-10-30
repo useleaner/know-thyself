@@ -15,13 +15,15 @@ const settings = {
 };
 const user = { sub: 'subject', name: 'Pessoa de teste', email: 'test@example.com', email_verified: true };
 const publicFiles = [
-  'index.html', 'termos.html', 'privacidade.html', 'login.css', 'login.js', 'i18n.js', 'i18n-en.js', 'style.css', 'cosmos.css', 'manifest.webmanifest',
+  'ajuda.html', 'ajuda.css', 'onboarding.css', 'pwa.js', 'offline.html',
+  'index.html', 'termos.html', 'privacidade.html', 'login.css', 'login.js', 'i18n.js', 'i18n-en.js', 'style.css', 'cosmos.css', 'manifest.webmanifest', 'sw.js', 'notification-link.js',
   'natal-catalog.js', 'natal-sign-texts.js', 'natal-house-texts.js', 'natal-aspect-texts.js',
+  'natal-minor-sign-texts.js', 'natal-minor-house-texts.js',
   'natal-angle-texts.js', 'natal-condition-texts.js', 'natal-synthesis-texts.js', 'natal-balance-texts.js',
-  'cabala-catalog.js', 'cabala-sphere-texts.js', 'cabala-path-texts.js',
+  'cabala-catalog.js', 'cabala-sphere-texts.js', 'cabala-path-texts.js', 'cabala-learning-texts.js', 'natal-learning-texts.js', 'aspect-context-texts.js',
   'assets/nebula.webp', 'assets/nebula-near.webp', 'assets/space-regular.ttf', 'assets/space-medium.ttf', 'assets/bricolage-semibold.ttf',
   'assets/google-g.png',
-  'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/apple-touch-icon.png', 'assets/icons/icon.svg'
+  'assets/icons/icon-192.png', 'assets/icons/icon-512.png', 'assets/icons/apple-touch-icon.png', 'assets/icons/icon.svg', 'assets/og-image.jpg'
 ];
 
 function configured(t, overrides = {}) {
@@ -36,7 +38,7 @@ function request(path, headers = {}) {
 }
 
 function session(config, value = user, now = Date.now()) {
-  return `${auth.SESSION_COOKIE}=${auth.seal({ user: value }, config, 'session', auth.SESSION_SECONDS, now)}`;
+  return `${auth.SESSION_COOKIE}=${auth.seal({ accountId: '00000000-0000-4000-8000-000000000001', user: value }, config, 'session', auth.SESSION_SECONDS, now)}`;
 }
 
 test('Vercel registers a Node proxy without excluding private paths from its matcher', async () => {
@@ -86,6 +88,13 @@ test('ajustes and perfil pages stay behind the session', t => {
   for (const path of ['/ajustes.js']) assert.equal(request(path).status, 401, path);
 });
 
+test('push worker stays public after session expiry and cron reaches its own secret check', t => {
+  configured(t, { GOOGLE_CLIENT_SECRET: '' });
+  for (const path of ['/sw.js', '/notification-link.js', '/api/cron-notifications']) assert.equal(request(path), undefined);
+  assert.equal(request('/notifications.js').status, 401);
+  assert.equal(request('/api/notifications').status, 401);
+});
+
 test('only a valid unexpired session for the allowed Google account permits private files', t => {
   const config = configured(t);
   assert.equal(request('/universo.html', { cookie: session(config) }), undefined);
@@ -106,7 +115,7 @@ test('only a valid unexpired session for the allowed Google account permits priv
 test('server sources, env files and tests stay unavailable even to authenticated visitors', t => {
   const config = configured(t);
   const headers = { cookie: session(config) };
-  for (const path of ['/lib/google-auth.cjs', '/lib', '/proxy.js', '/vercel.json', '/.env', '/.env.local', '/.env.example', '/api/auth.js', '/auth.test.mjs', '/tests/private.js', '/.git/config', '/%6cib/google-auth.cjs']) {
+  for (const path of ['/lib/google-auth.cjs', '/lib', '/proxy.js', '/vercel.json', '/.env', '/.env.local', '/.env.example', '/api/auth.js', '/api/profiles.js', '/api/notifications.js', '/api/cron-notifications.js', '/auth.test.mjs', '/tests/private.js', '/.git/config', '/%6cib/google-auth.cjs']) {
     assert.equal(request(path).status, 404, path);
     assert.equal(request(path, headers).status, 404, path);
   }
@@ -133,7 +142,7 @@ test('every nonpublic file in the project is denied to an anonymous request', as
     if (publicSet.has(file) || file.startsWith('.vercel/')) continue;
     const response = request(`/${file}`);
     assert.ok(response instanceof Response, file);
-    assert.ok([401, 404, 303].includes(response.status), file);
+    assert.ok([401, 403, 404, 303].includes(response.status), file);
   }
 });
 

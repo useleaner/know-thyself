@@ -50,12 +50,12 @@ test('seleção usa fatos atuais em quatro perfis sintéticos e três sistemas d
   for (const profile of fixtures) for (const houseSystem of ['placidus', 'equal', 'whole']) {
     const state = stateOf(profile, houseSystem);
     assert.equal(state.status, 'ok');
-    assert.equal(selectableBodies(state).length, 17);
+    assert.equal(selectableBodies(state).length, 18);
     const html = renderPanelBody(state);
     assert.match(html, /Seu mapa em conjunto/);
     assert.doesNotMatch(html, /<p>undefined<\/p>|>NaN<|\{\w+\}/);
-    // Quíron entra nas posições e no balanço, sem leitura autoral.
-    for (const body of state.natal.bodies.filter(body => body.id !== 'chiron')) {
+    // Quíron calculado também seleciona sua leitura de signo/casa.
+    for (const body of state.natal.bodies) {
       const found = findBody(state, body.id);
       assert.equal(found.sign, body.sign);
       assert.equal(found.house, body.house);
@@ -71,7 +71,7 @@ test('seleção usa fatos atuais em quatro perfis sintéticos e três sistemas d
       assert.ok(renderMapReading({ kind: 'body', id }, state).includes(natalAngleTexts[angle.axis][angle.axisSign][0]));
     }
     assert.ok(Math.abs(((findBody(state, 'dsc').longitude - state.natal.asc + 360) % 360) - 180) < 1e-9);
-    assert.equal(findBody(state, 'chiron'), null);
+    assert.equal(findBody(state, 'chiron').base, 'chiron');
     const d = natalDistribution(state.natal);
     assert.equal(d.total, 10);
     for (const total of [d.above + d.below, d.east + d.west, d.angular + d.succedent + d.cadent, d.quadrants.reduce((a, b) => a + b, 0)]) assert.equal(total, 10);

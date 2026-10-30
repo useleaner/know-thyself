@@ -1,8 +1,14 @@
-import { getSettings, setSettings, onProfilesChange, connectProfiles } from './profiles.js';
+import { getSettings, setSettings, onProfilesChange, connectProfiles, activeProfile } from './profiles.js';
 import { readSession, isLocalPreview } from './login.js?v=20261019-caminhos';
 import { t, lang, setLang } from './i18n.js';
+import { initNotifications } from './notifications.js';
 
-if (!isLocalPreview(location.href)) await readSession().then(session => session?.user && connectProfiles()).catch(() => {});
+let session, accountReady = false, accountError;
+try {
+  session = isLocalPreview(location.href) ? null : await readSession();
+  if (!isLocalPreview(location.href) && !session?.vercel && !session?.user) throw Object.assign(new Error(t('Sua sessão terminou. Entre novamente para acessar seus perfis.')), { code: 'session_expired' });
+  if (session?.user) { await connectProfiles(); accountReady = true; }
+} catch (error) { accountError = error; }
 
 const requested = new URLSearchParams(location.search).get('view');
 const status = document.querySelector('#status');
@@ -27,12 +33,18 @@ if (deepLink) toggle(deepLink, true);
 
 function render() {
   try {
+    if (accountError) throw accountError;
     const settings = getSettings();
     document.querySelector('#house-value').textContent = houses.find(([id]) => id === settings.houseSystem)[1];
     document.querySelector('#zodiac-value').textContent = settings.zodiac === 'tropical' ? t('Tropical') : t('Sideral');
     document.querySelector('#orbs-value').textContent = settings.orbMode === 'auto' ? t('Automático') : t('Manual');
     const active = Object.values(settings.points).filter(Boolean).length;
     document.querySelector('#points-value').textContent = t(active === 1 ? '{n} ativo' : '{n} ativos', { n: active });
+    const profile = activeProfile();
+    const cabalaLanguage = profile?.cabala?.language || settings.cabalaLanguage;
+    document.querySelector('#cabala-language-value').textContent = cabalaLanguage === 'en' ? 'English' : 'Português';
+    document.querySelector('#cabala-language-profile').textContent = profile?.cabala ? t('Perfil: {name}', { name: profile.name }) : t('Para novos perfis');
+    document.querySelectorAll('input[name="cabalaLanguage"]').forEach(input => { input.checked = input.value === cabalaLanguage; });
     document.querySelector('#language-value').textContent = lang === 'en' ? 'English' : 'Português';
     document.querySelectorAll('input[name="language"]').forEach(input => { input.checked = input.value === lang; });
     for (const name of ['houseSystem', 'zodiac']) document.querySelectorAll(`input[name="${name}"]`).forEach(input => { input.checked = input.value === settings[name]; });
@@ -45,22 +57,40 @@ function render() {
     document.querySelectorAll('[data-point]').forEach(input => { input.checked = settings.points[input.dataset.point]; });
   } catch {
     document.querySelectorAll('input, button').forEach(control => { control.disabled = true; });
-    status.textContent = t('Não foi possível acessar os dados salvos. Reabra a página ou tente outro navegador.');
+    status.textContent = accountError?.message || t('Não foi possível acessar os dados salvos. Reabra a página ou tente outro navegador.');
+    const retry = document.createElement(accountError?.code === 'session_expired' ? 'a' : 'button');
+    retry.className = 'profile-action';
+    retry.textContent = t(accountError?.code === 'session_expired' ? 'Entrar novamente' : 'Tentar novamente');
+    if (accountError?.code === 'session_expired') retry.href = './';
+    else { retry.type = 'button'; retry.addEventListener('click', () => location.reload()); }
+    status.append(' ', retry);
   }
 }
-function save(patch) {
-  const fail = () => { render(); status.textContent = t('Não foi possível salvar o ajuste. Libere espaço no navegador e tente novamente.'); };
-  try { Promise.resolve(setSettings(patch)).then(() => { status.textContent = ''; }, fail); }
-  catch { fail(); }
+let saving = false;
+async function save(patch) {
+  if (saving) { render(); return; }
+  saving = true;
+  const focused = document.activeElement;
+  const controls = [...document.querySelectorAll('input[name="cabalaLanguage"], input[name="houseSystem"], input[name="zodiac"], input[name="language"], #automatic-orbs, [data-point], [data-orb]')].filter(control => !control.disabled);
+  controls.forEach(control => { control.disabled = true; });
+  const fail = error => {
+    if (error?.code === 'session_expired') { accountError = error; render(); return; }
+    render(); status.textContent = error?.message || t('Não foi possível salvar o ajuste. Libere espaço no navegador e tente novamente.');
+  };
+  try { await setSettings(patch); status.textContent = ''; }
+  catch (error) { fail(error); }
+  finally {
+    saving = false; controls.forEach(control => { control.disabled = false; }); render();
+    if (focused?.isConnected && !focused.disabled) focused.focus();
+    else if (focused?.dataset.orb) document.querySelector(`[data-orb="${focused.dataset.orb}"][data-step="${-Number(focused.dataset.step)}"]`)?.focus();
+  }
 }
-document.querySelectorAll('input[name="houseSystem"], input[name="zodiac"]').forEach(input => input.addEventListener('change', () => save({ [input.name]: input.value })));
+document.querySelectorAll('input[name="houseSystem"], input[name="zodiac"], input[name="cabalaLanguage"]').forEach(input => input.addEventListener('change', () => save({ [input.name]: input.value })));
 document.querySelector('#automatic-orbs').addEventListener('change', event => save({ orbMode: event.target.checked ? 'auto' : 'manual' }));
 document.querySelectorAll('[data-point]').forEach(input => input.addEventListener('change', () => save({ points: { [input.dataset.point]: input.checked } })));
 document.querySelectorAll('[data-orb]').forEach(button => button.addEventListener('click', () => {
   try {
     save({ orbs: { [button.dataset.orb]: getSettings().orbs[button.dataset.orb] + Number(button.dataset.step) } });
-    // No limite (0 ou 15) o botão tocado desativa; o foco passa para o oposto em vez de se perder.
-    if (button.disabled) document.querySelector(`[data-orb="${button.dataset.orb}"][data-step="${-Number(button.dataset.step)}"]`).focus();
   }
   catch { status.textContent = t('Não foi possível ler os ajustes. Reabra a página e tente novamente.'); }
 }));
@@ -71,6 +101,7 @@ document.querySelectorAll('input[name="language"]').forEach(input => input.addEv
 }));
 onProfilesChange(render);
 render();
+initNotifications({ session, accountReady });
 
 const motion = matchMedia('(prefers-reduced-motion: reduce)');
 function parallax() {

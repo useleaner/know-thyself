@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <script>try{var l=localStorage.getItem('know-thyself.lang');if(l==='en'||(l!=='pt-BR'&&!/^pt\b/i.test(navigator.language||'pt')))document.documentElement.classList.add('i18n-pending')}catch(e){}</script>
+  <style>.i18n-pending main{visibility:hidden;animation:i18n-show 0s 3s forwards}@keyframes i18n-show{to{visibility:visible}}</style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#080d23">
+  <title>Minha conta — Know Thyself</title>
+  <link rel="stylesheet" href="style.css?v=20261020-veu4">
+  <link rel="stylesheet" href="ajustes.css?v=20261021-notifications">
+  <link rel="stylesheet" href="conta.css?v=20261023-polish">
+</head>
+<body class="settings-body">
+  <div class="atmosphere" aria-hidden="true"><div class="nebula nebula-far"></div><div class="nebula nebula-near"></div></div>
+  <main class="settings-page account-page" id="account-page">
+    <header class="settings-header">
+      <a href="./ajustes.html" aria-label="Voltar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></a>
+      <h1>Minha conta</h1><span></span>
+    </header>
+    <p id="account-email" class="account-email"></p>
+    <button type="button" data-auth-logout>Sair</button>
+    <section aria-labelledby="delete-title">
+      <h2 id="delete-title">Excluir minha conta</h2>
+      <p>Sua conta, seus perfis e suas preferências de notificação serão excluídos. Essa ação não pode ser desfeita.</p>
+      <form id="account-delete-form" hidden>
+        <label for="account-confirmation">Digite seu e-mail para confirmar</label>
+        <input id="account-confirmation" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" required maxlength="254">
+        <label class="account-check"><input id="account-confirm" type="checkbox" required><span>Entendo que meus dados da conta serão excluídos.</span></label>
+        <button id="account-delete" type="submit">Excluir definitivamente</button>
+      </form>
+    </section>
+    <p id="account-status" role="status" aria-live="polite">Carregando sua conta…</p>
+    <button id="account-retry" type="button" hidden>Tentar novamente</button>
+    <a id="account-signin" href="./" hidden>Entrar novamente</a>
+    <noscript>Ative o JavaScript para acessar sua conta.</noscript>
+  </main>
+  <script type="module" src="conta.js"></script>
+</body>
+</html>

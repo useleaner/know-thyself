@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <script>try{var l=localStorage.getItem('know-thyself.lang');if(l==='en'||(l!=='pt-BR'&&!/^pt\b/i.test(navigator.language||'pt')))document.documentElement.classList.add('i18n-pending')}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080d23">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Know Thyself — Usuários</title>
+  <link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="admin-page">
+    <header class="admin-brand"><a href="universo.html" aria-label="Voltar ao app">Know Thyself</a></header>
+    <div class="admin-heading">
+      <h1>Usuários</h1>
+      <button type="button" id="refresh-users">Atualizar</button>
+    </div>
+    <p id="users-status" class="users-status" role="status" aria-live="polite">Carregando usuários…</p>
+    <div class="admin-error" id="users-error" hidden>
+      <p id="users-error-message" role="alert"></p>
+      <a href="./" id="users-login" hidden>Entrar</a>
+      <button type="button" id="retry-users" hidden>Tentar novamente</button>
+    </div>
+    <p id="users-empty" class="empty-copy" hidden>Os usuários aparecerão aqui após entrar no app.</p>
+    <div class="table-scroll" id="users-table-region" role="region" aria-label="Lista de usuários" tabindex="0" hidden>
+      <table>
+        <thead><tr><th scope="col">Nome</th><th scope="col">E-mail</th><th scope="col">Cadastro</th><th scope="col">Último login</th><th scope="col">ID</th></tr></thead>
+        <tbody id="users-rows"></tbody>
+      </table>
+    </div>
+    <footer class="admin-footer"><button type="button" id="load-more-users" hidden>Carregar mais</button></footer>
+    <noscript><p>Ative o JavaScript no navegador para entrar.</p></noscript>
+  </main>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

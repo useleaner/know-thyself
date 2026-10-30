@@ -18,8 +18,8 @@ export const lang = detectLang();
 export const locale = lang === 'en' ? 'en-US' : 'pt-BR';
 const dictionary = lang === 'en' ? EN : null;
 
-export function t(text, vars) {
-  const out = dictionary?.[text] ?? text;
+export function t(text, vars, language = lang) {
+  const out = (language === 'en' ? EN[text] : undefined) ?? text;
   return vars ? out.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? vars[key] : match)) : out;
 }
 

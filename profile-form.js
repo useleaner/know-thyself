@@ -1,8 +1,6 @@
-import { readProfiles, saveProfile, deleteProfile, validateProfile, onProfilesChange, activeProfile, setActive, partnerProfile, setPartner, getSettings, connectProfiles } from './profiles.js';
+import { readProfiles, saveProfile, deleteProfile, validateProfile, onProfilesChange, activeProfile, setActive, partnerProfile, setPartner, connectProfiles, getSettings } from './profiles.js';
 import { searchPlaces, localToUtcDetailed } from './geocode.js';
-import { buildMapState } from './map-data.js';
-import { renderProfileHeader } from './map-readings.js';
-import { readSession, isLocalPreview, initLogout } from './login.js?v=20261019-caminhos';
+import { readSession, isLocalPreview } from './login.js?v=20261019-caminhos';
 import { t, lang } from './i18n.js';
 
 // Na conta a gravação vai ao servidor (promessa); no aparelho é imediata. Só segue depois de gravar.
@@ -17,42 +15,74 @@ const monthFirst = lang === 'en';
 const toIso = value => value.replace(/^(\d{2})\/(\d{2})\/(\d{4})$/, monthFirst ? '$3-$1-$2' : '$3-$2-$1');
 const toBr = value => value.replace(/^(\d{4})-(\d{2})-(\d{2})$/, monthFirst ? '$2/$3/$1' : '$3/$2/$1');
 
-export async function initProfilePage({ root = document, storage = localStorage, pageURL = location.href, navigate = url => location.assign(url), request = fetch, confirmRemove = message => globalThis.confirm(message), lookupPlaces = searchPlaces } = {}) {
+export async function initProfilePage({ root = document, storage = localStorage, pageURL = location.href, navigate = url => location.assign(url), request = fetch, confirmRemove = message => globalThis.confirm(message), confirmDiscard = message => globalThis.confirm(message), draftStorage = globalThis.sessionStorage, lookupPlaces = searchPlaces } = {}) {
   const node = id => root.querySelector(`#${id}`);
   const form = node('birth-form'), status = node('profile-status'), list = node('profile-list');
-  const remove = node('delete-profile'), cancel = node('cancel-edit'), unknown = node('time-unknown');
+  const cancel = node('cancel-edit'), unknown = node('time-unknown');
   const name = node('birth-name'), date = node('birth-date'), time = node('birth-time');
   const place = node('birth-place'), placeList = node('place-list'), placeState = node('place-state');
   const hubStatus = node('profile-hub-status');
+  const cabalaFields = { paternalSurname: node('cabala-paternal'), maternalSurname: node('cabala-maternal') };
+  let cabalaOrder = 'paternal-first', cabalaLanguage = 'pt';
+  const cabalaValues = () => ({ firstNames: name.value, ...Object.fromEntries(Object.entries(cabalaFields).map(([key, field]) => [key, field.value])), language: cabalaLanguage, order: cabalaOrder });
+  const hasCabala = () => ['paternalSurname', 'maternalSurname'].some(key => cabalaFields[key].value.trim());
+  const setCabala = value => {
+    // Novos cadastros seguem os campos; preservar a convenção de perfis e rascunhos anteriores.
+    cabalaOrder = value?.order || 'paternal-first';
+    cabalaLanguage = value?.language || getSettings(storage).cabalaLanguage;
+    for (const [key, field] of Object.entries(cabalaFields)) field.value = value?.[key] || '';
+    syncCabala();
+  };
   const url = new URL(pageURL);
+  const requiresCabala = url.searchParams.get('cabala') === '1';
   const comparing = url.searchParams.get('compare') === '1';
-  const comparisonMode = ['synastry', 'synastry-transits'].includes(url.searchParams.get('mode')) ? url.searchParams.get('mode') : 'synastry';
-  const returnToApp = comparing ? `./universo.html?mode=${comparisonMode}` : './universo.html';
-  const profileURL = nextView => {
-    const params = new URLSearchParams();
-    if (nextView) params.set('view', nextView);
-    if (comparing) { params.set('compare', '1'); params.set('mode', comparisonMode); }
-    return `./perfil.html${params.size ? `?${params}` : ''}`;
-  };
+  const allowedModes = ['natal', 'transits', 'synastry', 'synastry-transits'];
+  const requestedMode = url.searchParams.get('mode');
+  const returnMode = comparing ? ['synastry', 'synastry-transits'].includes(requestedMode) ? requestedMode : 'synastry'
+    : allowedModes.includes(requestedMode) ? requestedMode : null;
+  const returnQuery = new URLSearchParams();
+  if (returnMode) returnQuery.set('mode', returnMode);
+  if (requiresCabala) returnQuery.set('tree', 'personal');
+  const returnToApp = `./universo.html${returnQuery.size ? `?${returnQuery}` : ''}`;
   const route = url.searchParams.get('view');
-  const view = ['profiles', 'new', 'edit'].includes(route) ? route : 'hub';
-  let editingId, chosen = null, options = [], active = -1, debounce, sequence = 0;
-  const back = node('profile-back');
-  // Visão e voltar saem da URL antes de esperar a sessão: a página não pinta o hub e depois troca.
-  const setView = (shown, newLike) => {
-    node('profile-hub').hidden = shown !== 'hub';
-    node('profiles-view').hidden = shown !== 'profiles';
-    node('profile-form-view').hidden = shown !== 'new' && shown !== 'edit';
-    back.setAttribute('aria-label', shown === 'hub' ? t('Voltar') : newLike ? t('Voltar aos perfis') : t('Voltar ao perfil'));
-    back.href = shown === 'hub' ? returnToApp : profileURL(newLike ? 'profiles' : null);
+  let editingId, chosen = null, options = [], active = -1, debounce, sequence = 0, busy = false, busyFocus, owner = 'local', baseline = '';
+  let originalProfile, preservedDraftName, initialName = '', nameConfirmed = false, inactiveCabalaDraft = false;
+  const draftKey = () => `know-thyself.profile-draft.v1.${owner}`;
+  const retry = node('profile-retry'), relogin = node('profile-relogin');
+  const values = () => ({ name: name.value, date: date.value, time: time.value, unknown: unknown.checked, place: place.value, chosen, nameConfirmed, preservedDraftName, cabala: { enabled: !inactiveCabalaDraft && hasCabala(), ...cabalaValues() } });
+  const dirty = () => !node('profile-form-view').hidden && JSON.stringify(values()) !== baseline;
+  const clearDraft = () => { try { draftStorage?.removeItem(draftKey()); } catch { /* sair sem armazenamento continua protegido pela confirmação */ } };
+  const stashDraft = () => {
+    if (!dirty()) return;
+    try { draftStorage?.setItem(draftKey(), JSON.stringify({ owner, editingId, values: values() })); } catch { /* confirmação continua disponível sem espaço */ }
   };
-  // Falha de carga aparece no hub; o status do formulário fica oculto nas outras visões.
+  const discard = () => {
+    if (dirty() && !confirmDiscard(t('Descartar as alterações não salvas?'))) return false;
+    clearDraft(); return true;
+  };
+  relogin.href = `./?return=profile${returnMode ? `&mode=${returnMode}` : ''}${comparing ? '&compare=1' : ''}`;
+  retry.addEventListener('click', () => navigate(pageURL));
+  relogin.addEventListener('click', () => { stashDraft(); baseline = JSON.stringify(values()); });
+  const back = node('profile-back');
+  back.href = returnToApp;
+  const setBusy = value => {
+    if (value && !busy) busyFocus = root.activeElement;
+    busy = value;
+    root.querySelectorAll('#profile-list button, #profile-form-view button, #birth-form input, #birth-form select, #new-profile, #profile-partner').forEach(control => { control.disabled = value; });
+    if (!value) {
+      syncTime(); syncCabala();
+      if (busyFocus?.isConnected) busyFocus.focus();
+      busyFocus = null;
+    }
+    form.setAttribute('aria-busy', String(value));
+  };
   const fail = message => {
-    setView('hub');
-    node('profile-summary').hidden = true;
+    node('profile-form-view').hidden = true;
+    node('saved-profiles').hidden = true;
+    node('new-profile').hidden = true;
+    node('profile-comparison').hidden = true;
     hubStatus.textContent = message;
   };
-  setView(view, view === 'new');
 
   try {
     const session = isLocalPreview(pageURL) ? null : await readSession(request);
@@ -60,17 +90,45 @@ export async function initProfilePage({ root = document, storage = localStorage,
       navigate(new URL('./', pageURL).pathname);
       return;
     }
-    if (session?.user?.email) {
-      node('profile-email').textContent = session.user.email;
-      node('profile-email').hidden = false;
+    if (session?.user) {
+      owner = session.user.accountId || session.user.email.toLowerCase();
+      await connectProfiles({ storage, request });
     }
-    if (session?.user) await connectProfiles({ storage, request }).catch(() => {});
-  } catch {
-    fail(t('Não foi possível abrir seus perfis. Confira a conexão e recarregue a página.'));
+  } catch (error) {
+    fail(error.code === 'session_expired' ? error.message : t('Não foi possível abrir seus perfis. Confira a conexão e tente novamente.'));
+    retry.hidden = error.code === 'session_expired';
+    relogin.hidden = error.code !== 'session_expired';
     return;
   }
-  initLogout({ root, request, navigate, pageURL });
+  root.addEventListener('click', event => {
+    const target = event.target.closest?.('a, [data-auth-logout]');
+    if (!target || target === relogin) return;
+    if (busy || !discard()) { event.preventDefault(); event.stopImmediatePropagation(); }
+    else baseline = JSON.stringify(values());
+  }, true);
+  root.defaultView?.addEventListener('beforeunload', event => {
+    if (!dirty()) return;
+    stashDraft(); event.preventDefault(); event.returnValue = '';
+  });
+  form.addEventListener('input', stashDraft);
+  form.addEventListener('change', stashDraft);
 
+  function remoteFailure(error, message, target = hubStatus) {
+    target.textContent = error?.code === 'session_expired' ? error.message : message;
+    relogin.hidden = error?.code !== 'session_expired';
+    if (error?.code === 'session_expired') stashDraft();
+  }
+  function syncCabala() {
+    for (const field of Object.values(cabalaFields)) {
+      field.disabled = busy;
+      field.required = requiresCabala || Boolean(originalProfile?.cabala) || hasCabala();
+    }
+  }
+  name.addEventListener('input', () => { nameConfirmed = true; inactiveCabalaDraft = false; });
+  for (const field of Object.values(cabalaFields)) {
+    field.addEventListener('input', () => { inactiveCabalaDraft = false; syncCabala(); });
+    field.addEventListener('change', () => { inactiveCabalaDraft = false; syncCabala(); });
+  }
   function syncTime() {
     if (unknown.checked) time.value = '';
     time.disabled = unknown.checked;
@@ -98,7 +156,7 @@ export async function initProfilePage({ root = document, storage = localStorage,
     place.value = option.label;
     chosen = { lat: option.lat, lon: option.lon, timezone: option.timezone };
     placeState.textContent = '';
-    closeList();
+    closeList(); stashDraft();
   }
   function showOptions(found) {
     options = found;
@@ -151,13 +209,6 @@ export async function initProfilePage({ root = document, storage = localStorage,
 
   function render() {
     const people = readProfiles(storage), current = activeProfile(storage);
-    const mapState = buildMapState({ ...getSettings(storage), profile: current, mode: 'natal' });
-    const header = renderProfileHeader(mapState);
-    node('active-profile').innerHTML = header.html;
-    // Só o estado vazio é link (para o cadastro); com perfil, o bloco é texto e dispensa rótulo.
-    if (current) { node('active-profile').removeAttribute('href'); node('active-profile').removeAttribute('aria-label'); }
-    else { node('active-profile').setAttribute('href', profileURL('new')); node('active-profile').setAttribute('aria-label', header.label); }
-    node('profile-actions').hidden = !current;
     list.replaceChildren();
     if (!people.length) {
       const empty = root.createElement('p');
@@ -185,13 +236,31 @@ export async function initProfilePage({ root = document, storage = localStorage,
       details.textContent = `${toBr(profile.birthDate)} · ${profile.timeUnknown ? t('Horário desconhecido') : profile.birthTime} · ${profile.place}`;
       row.append(heading, details);
       row.addEventListener('click', () => {
-        const fail = () => { node('profiles-status').textContent = t('Não foi possível selecionar o perfil. Tente novamente.'); };
-        try { afterSave(setActive(profile.id, storage), () => navigate(returnToApp), fail); } catch { fail(); }
+        if (busy || profile.id === current?.id) return;
+        const fail = error => { setBusy(false); remoteFailure(error, t('Não foi possível selecionar o perfil. Tente novamente.')); };
+        setBusy(true); hubStatus.textContent = '';
+        try { afterSave(setActive(profile.id, storage), () => { setBusy(false); render(); list.querySelector?.('[aria-current="true"]')?.focus(); }, fail); } catch (error) { fail(error); }
       });
-      list.append(row);
+      const entry = root.createElement('div');
+      entry.className = 'profile-card';
+      entry.setAttribute('data-active', String(profile.id === current?.id));
+      const editButton = root.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'profile-icon profile-edit';
+      editButton.setAttribute('aria-label', t('Editar perfil de {name}', { name: profile.name }));
+      editButton.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></svg>';
+      editButton.addEventListener('click', () => { if (!busy) edit(profile); });
+      const trash = root.createElement('button');
+      trash.type = 'button';
+      trash.className = 'profile-icon profile-trash';
+      trash.setAttribute('aria-label', t('Excluir perfil de {name}', { name: profile.name }));
+      trash.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7M14 10v7"/></svg>';
+      trash.addEventListener('click', () => removePerson(profile));
+      entry.append(row, editButton, trash);
+      list.append(entry);
     }
     const comparison = node('profile-comparison');
-    comparison.hidden = !comparing || people.length < 2;
+    comparison.hidden = !comparing || people.length < 3;
     const partner = node('profile-partner');
     partner.replaceChildren();
     for (const person of [{ id: '', name: t('Escolha uma pessoa') }, ...people.filter(profile => profile.id !== current?.id)]) {
@@ -202,27 +271,65 @@ export async function initProfilePage({ root = document, storage = localStorage,
     }
     partner.value = partnerProfile(storage)?.id || '';
   }
+  function openForm() {
+    clearTimeout(debounce); sequence++; closeList();
+    status.textContent = ''; placeState.textContent = ''; hubStatus.textContent = '';
+    node('profile-form-view').hidden = false;
+    node('new-profile').hidden = true;
+    baseline = JSON.stringify(values());
+    node('form-title').focus();
+    node('profile-form-view').scrollIntoView?.({ block: 'start', behavior: 'instant' });
+  }
+  function closeForm() {
+    clearTimeout(debounce); sequence++; closeList();
+    node('profile-form-view').hidden = true;
+    node('new-profile').hidden = false;
+    clearDraft(); baseline = ''; relogin.hidden = true;
+    editingId = undefined; chosen = null; status.textContent = ''; placeState.textContent = '';
+    node('new-profile').focus();
+  }
   function edit(profile) {
+    if (!discard()) return;
     editingId = profile.id;
-    name.value = profile.name;
+    originalProfile = profile; preservedDraftName = undefined; nameConfirmed = false; inactiveCabalaDraft = false;
+    name.value = initialName = profile.cabala?.firstNames || profile.name;
     date.value = toBr(profile.birthDate);
     time.value = profile.birthTime || '';
     unknown.checked = profile.timeUnknown;
     place.value = profile.place;
     chosen = profile.lat === null ? null : { lat: profile.lat, lon: profile.lon, timezone: profile.timezone };
+    setCabala(profile.cabala);
     node('form-title').textContent = t('Editar perfil');
-    remove.hidden = false;
-    cancel.hidden = false;
     syncTime();
+    openForm();
   }
+  function createProfile() {
+    if (busy || !discard()) return;
+    editingId = undefined; chosen = null;
+    originalProfile = undefined; preservedDraftName = undefined; initialName = ''; nameConfirmed = false; inactiveCabalaDraft = false;
+    name.value = ''; date.value = ''; time.value = ''; place.value = ''; unknown.checked = false;
+    setCabala();
+    node('form-title').textContent = t('Novo perfil');
+    syncTime(); openForm();
+  }
+  node('new-profile').addEventListener('click', createProfile);
+  cancel.addEventListener('click', () => { if (!busy && discard()) closeForm(); });
   node('profile-partner').addEventListener('change', () => {
-    const fail = () => { hubStatus.textContent = t('Não foi possível selecionar a pessoa. Tente novamente.'); };
-    try { afterSave(setPartner(node('profile-partner').value || null, storage), () => navigate(returnToApp), fail); } catch { fail(); }
+    if (busy) return;
+    const fail = error => { setBusy(false); render(); remoteFailure(error, t('Não foi possível selecionar a pessoa. Tente novamente.')); };
+    setBusy(true); hubStatus.textContent = '';
+    try { afterSave(setPartner(node('profile-partner').value || null, storage), () => { setBusy(false); render(); }, fail); } catch (error) { fail(error); }
   });
   form.addEventListener('submit', event => {
     event.preventDefault();
+    if (busy) return;
     status.textContent = '';
-    const input = { name: name.value, birthDate: toIso(date.value), birthTime: normalizeBirthTime(time.value), timeUnknown: unknown.checked, place: place.value, ...chosen };
+    const useCabala = requiresCabala || Boolean(originalProfile?.cabala) || hasCabala();
+    if (useCabala && (inactiveCabalaDraft || (originalProfile && !originalProfile.cabala && !nameConfirmed && name.value === initialName))) {
+      status.textContent = t('Confira o campo Nome: deixe apenas os nomes de nascimento, sem os sobrenomes.'); name.focus(); return;
+    }
+    const displayName = preservedDraftName && name.value === preservedDraftName.firstNames ? preservedDraftName.name : originalProfile?.cabala && name.value === initialName ? originalProfile.name : name.value;
+    const input = { name: displayName, birthDate: toIso(date.value), birthTime: normalizeBirthTime(time.value), timeUnknown: unknown.checked, place: place.value, ...chosen, cabala: useCabala ? cabalaValues() : undefined };
     let warning = '';
     try {
       validateProfile(input);
@@ -230,37 +337,65 @@ export async function initProfilePage({ root = document, storage = localStorage,
       if (!input.timeUnknown) warning = localToUtcDetailed({ date: input.birthDate, time: input.birthTime, timezone: chosen.timezone }).warning || '';
     } catch (error) { status.textContent = error.message; return; }
     // Salvar já ativa o perfil, na mesma gravação.
-    const done = saved => {
-      editingId = saved.id;
-      if (warning) { status.textContent = t('Dados salvos. {warning}', { warning }); remove.hidden = false; cancel.hidden = false; }
-      else navigate(returnToApp);
+    const done = () => {
+      setBusy(false); render(); closeForm();
+      if (warning) hubStatus.textContent = t('Dados salvos. {warning}', { warning });
     };
-    const fail = error => { status.textContent = /\s/.test(error?.message || '') ? error.message : t('Não foi possível salvar. Verifique o armazenamento do navegador; os dados anteriores foram preservados.'); };
+    const fail = error => {
+      setBusy(false); stashDraft();
+      status.textContent = /\s/.test(error?.message || '') ? error.message : t('Não foi possível salvar. Verifique o armazenamento do navegador; os dados anteriores foram preservados.');
+      relogin.hidden = error?.code !== 'session_expired';
+    };
+    setBusy(true);
     try { afterSave(saveProfile(storage, input, editingId), done, fail); } catch (error) { fail(error); }
   });
-  remove.addEventListener('click', () => {
-    if (!editingId || !confirmRemove(t('Excluir este perfil deste navegador?'))) return;
-    const fail = () => { status.textContent = t('Não foi possível excluir. Tente novamente.'); };
-    try { afterSave(deleteProfile(storage, editingId), () => navigate(profileURL('profiles')), fail); } catch { fail(); }
-  });
+  function removePerson(profile) {
+    if (busy || !profile || !confirmRemove(t('Excluir perfil de {name}?', { name: profile.name }))) return;
+    setBusy(true); hubStatus.textContent = '';
+    const fail = error => { setBusy(false); remoteFailure(error, t('Não foi possível excluir. Tente novamente.')); };
+    try { afterSave(deleteProfile(storage, profile.id), () => {
+      setBusy(false); render();
+      if (editingId === profile.id) closeForm();
+      (list.querySelector?.('[aria-current="true"]') || node('new-profile')).focus();
+    }, fail); } catch (error) { fail(error); }
+  }
   try {
     render();
-    const isForm = view === 'new' || view === 'edit';
-    const newLike = view === 'new' || (view === 'edit' && !activeProfile(storage));
-    setView(view, newLike);
-    if (view === 'edit' && activeProfile(storage)) edit(activeProfile(storage));
+    let draft;
+    try { draft = JSON.parse(draftStorage?.getItem(draftKey()) || 'null'); } catch { clearDraft(); }
+    if (url.searchParams.get('cabala') === '1' && activeProfile(storage)) edit(activeProfile(storage));
+    else if (route === 'edit' && activeProfile(storage)) edit(activeProfile(storage));
+    else if (route === 'new' || route === 'edit' || url.searchParams.get('cabala') === '1') createProfile();
     else syncTime();
-    node('edit-active-profile').href = profileURL('edit');
-    node('switch-profile').href = profileURL('profiles');
-    node('new-profile').href = profileURL('new');
-    cancel.href = profileURL(null);
-    if (root.title !== undefined) root.title = `${isForm ? node('form-title').textContent : view === 'profiles' ? t('Dados de nascimento') : t('Perfil')} — Know Thyself`;
+    try {
+      const saved = draft?.values;
+      if (draft?.owner === owner && saved && ['name', 'date', 'time', 'place'].every(key => typeof saved[key] === 'string' && saved[key].length <= 240) && typeof saved.unknown === 'boolean' && (!draft.editingId || readProfiles(storage).some(profile => profile.id === draft.editingId))) {
+        if (saved.preservedDraftName !== undefined && (!saved.preservedDraftName || !['name', 'firstNames'].every(key => typeof saved.preservedDraftName[key] === 'string' && saved.preservedDraftName[key].length <= 120))) throw new Error('invalid_draft');
+        if (saved.nameConfirmed !== undefined && typeof saved.nameConfirmed !== 'boolean') throw new Error('invalid_draft');
+        if (saved.cabala && (typeof saved.cabala.enabled !== 'boolean' || !['firstNames', ...Object.keys(cabalaFields)].every(key => typeof saved.cabala[key] === 'string' && saved.cabala[key].length <= 120) || !['', 'pt', 'en'].includes(saved.cabala.language) || !['', 'paternal-first', 'maternal-first'].includes(saved.cabala.order))) throw new Error('invalid_draft');
+        // Só a conta verificada pode recuperar seu rascunho; ele continua sem salvar.
+        if (draft.editingId) edit(readProfiles(storage).find(profile => profile.id === draft.editingId));
+        else createProfile();
+        name.value = saved.name; date.value = saved.date; time.value = saved.time;
+        unknown.checked = saved.unknown; place.value = saved.place; chosen = saved.chosen;
+        if (saved.cabala) {
+          setCabala(saved.cabala);
+          if (saved.cabala.enabled || hasCabala() || saved.cabala.firstNames) name.value = saved.cabala.firstNames;
+          inactiveCabalaDraft = !saved.cabala.enabled && hasCabala();
+        }
+        // O rascunho antigo pode conter um nome de exibição ainda não salvo e diferente dos nomes da Cabala.
+        preservedDraftName = saved.preservedDraftName || (!Object.hasOwn(saved, 'nameConfirmed') && saved.cabala && name.value !== saved.name ? { name: saved.name, firstNames: saved.cabala.firstNames } : undefined);
+        nameConfirmed = Object.hasOwn(saved, 'nameConfirmed') ? saved.nameConfirmed === true : Boolean(saved.cabala?.enabled && saved.cabala.firstNames);
+        syncTime(); stashDraft(); status.textContent = t('Recuperamos seu preenchimento. Confira e salve os dados.');
+      } else if (draft) clearDraft();
+    } catch { clearDraft(); }
+    if (root.title !== undefined) root.title = `${t('Perfil')} — Know Thyself`;
   } catch {
     fail(t('Não foi possível ler os perfis. Os dados não foram sobrescritos. Verifique o armazenamento do navegador.'));
     return;
   }
   onProfilesChange(() => {
-    try { render(); }
+    try { render(); if (busy) setBusy(true); }
     catch { fail(t('Não foi possível atualizar os perfis. Recarregue a página para tentar novamente.')); }
   });
   const viewport = root.defaultView;

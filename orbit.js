@@ -1,8 +1,10 @@
 import { t } from './i18n.js';
 import { tick as haptic } from './haptics.js';
+import { notificationLink } from './notification-link.js';
 
 const names = ['map', 'kaballah', 'correspondences'];
 const labels = [t('Mapa astral'), t('Kaballah'), t('Correspondências')];
+const SECTION_KEY = 'know-thyself.section';
 
 export function wrap(value, period = 3) {
   return ((value % period) + period) % period;
@@ -32,7 +34,7 @@ export function orbitPose(index, position, width) {
   };
 }
 
-export function initOrbit({ scene, onChange = () => {} }) {
+export function initOrbit({ scene, onChange = () => {}, navigation = globalThis.window }) {
   const areas = names.map(name => scene.querySelector(`[data-area="${name}"]`));
   const viewports = areas.map(area => area?.querySelector('.area-scroll'));
   if (viewports.some(viewport => !viewport)) throw new Error('Orbit requires map, kaballah and correspondences, each with an .area-scroll.');
@@ -50,6 +52,17 @@ export function initOrbit({ scene, onChange = () => {} }) {
   let wheelTotal = 0;
   let wheelLocked = false;
   let wheelTimer;
+
+  function rememberSection(name, replace = false) {
+    try { navigation?.sessionStorage?.setItem(SECTION_KEY, name); } catch { /* navegação funciona sem armazenamento */ }
+    try { navigation?.history?.[replace ? 'replaceState' : 'pushState']({ ...navigation.history.state, ktSection: name }, ''); } catch { /* histórico indisponível não bloqueia a órbita */ }
+  }
+  let initial = 'map';
+  try {
+    const directed = notificationLink(navigation.location?.href, navigation.location?.href);
+    const saved = navigation.history?.state?.ktSection ?? navigation.sessionStorage?.getItem(SECTION_KEY);
+    if (!directed && names.includes(saved)) initial = saved;
+  } catch { /* seção padrão se o navegador bloquear o armazenamento */ }
 
   scene.style.touchAction = 'pan-y';
 
@@ -140,12 +153,16 @@ export function initOrbit({ scene, onChange = () => {} }) {
     snapTo(destination);
   }
 
-  function goTo(name, { focus = false } = {}) {
+  function goTo(name, { focus = false, history = true } = {}) {
     const index = names.indexOf(name);
     if (index < 0 || scene.inert) return;
     releaseDrag();
     destination += wrap(index - active + 1.5) - 1.5;
-    if (index !== active) haptic();
+    if (index !== active) {
+      haptic();
+      if (history) rememberSection(name);
+      else try { navigation?.sessionStorage?.setItem(SECTION_KEY, name); } catch { /* armazenamento opcional */ }
+    }
     setActive(index);
     snapTo(destination, focus);
   }
@@ -258,6 +275,10 @@ export function initOrbit({ scene, onChange = () => {} }) {
     settle(false);
   });
   window.addEventListener('blur', () => { pointers.clear(); cancelDrag(); });
+  navigation?.addEventListener('popstate', event => {
+    const section = event.state?.ktSection;
+    if (names.includes(section)) goTo(section, { history: false });
+  });
   new ResizeObserver(() => {
     const nextWidth = Math.max(1, scene.getBoundingClientRect().width);
     if (nextWidth !== width) {
@@ -267,7 +288,9 @@ export function initOrbit({ scene, onChange = () => {} }) {
     render();
   }).observe(scene);
 
-  setActive(0, true);
+  active = position = destination = names.indexOf(initial);
+  rememberSection(initial, true);
+  setActive(active, true);
   render();
   settle(false);
   return { goTo, activeViewport };

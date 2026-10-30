@@ -1,7 +1,7 @@
 // RASCUNHOS para revisão do usuário: textos originais, simbólicos e não determinísticos.
 // Não são conselho médico, financeiro ou psicológico. Montados a partir de fragmentos escritos à mão
 // (função do planeta × estilo do signo × tema da casa), organizados por planeta.
-import { t } from './i18n.js';
+import { t, lang } from './i18n.js';
 export const DRAFT = true;
 
 export const SIGNS = [t('Áries'), t('Touro'), t('Gêmeos'), t('Câncer'), t('Leão'), t('Virgem'), t('Libra'), t('Escorpião'), t('Sagitário'), t('Capricórnio'), t('Aquário'), t('Peixes')];
@@ -65,31 +65,33 @@ for (const [key, p] of Object.entries(P)) {
   }
 }
 
-export const aspect = {
-  conjunction: t('A conjunção funde duas energias no mesmo ponto do céu, reforçando-as e tornando difícil separá-las. Pode ser vivida como um tema intenso e concentrado.'),
-  opposition: t('A oposição coloca duas energias frente a frente, como os extremos de uma gangorra. Convida a perceber os dois lados e buscar um ponto de equilíbrio entre eles.'),
-  trine: t('O trígono liga duas energias em harmonia, com fluxo natural entre elas. Costuma indicar facilidade que vale cultivar com intenção para não ficar apenas no automático.'),
-  square: t('O quadrado cria tensão entre duas energias que puxam direções diferentes. Simbolicamente, essa fricção pode motivar movimento e crescimento quando é reconhecida.'),
-  sextile: t('O sextil conecta duas energias de forma cooperativa, como uma oportunidade que se abre quando há iniciativa. Pede um pequeno passo para que o potencial se realize.'),
-};
+const aspectSources = language => ({
+  conjunction: t('A conjunção funde duas energias no mesmo ponto do céu, reforçando-as e tornando difícil separá-las. Pode ser vivida como um tema intenso e concentrado.', undefined, language),
+  opposition: t('A oposição coloca duas energias frente a frente, como os extremos de uma gangorra. Convida a perceber os dois lados e buscar um ponto de equilíbrio entre eles.', undefined, language),
+  trine: t('O trígono liga duas energias em harmonia, com fluxo natural entre elas. Costuma indicar facilidade que vale cultivar com intenção para não ficar apenas no automático.', undefined, language),
+  square: t('O quadrado cria tensão entre duas energias que puxam direções diferentes. Simbolicamente, essa fricção pode motivar movimento e crescimento quando é reconhecida.', undefined, language),
+  sextile: t('O sextil conecta duas energias de forma cooperativa, como uma oportunidade que se abre quando há iniciativa. Pede um pequeno passo para que o potencial se realize.', undefined, language),
+});
 
-const ASPECT_PHRASE = {
-  conjunction: [t('se fundem'), t('estão unidos')],
-  opposition: [t('se opõem'), t('ficam frente a frente')],
-  trine: [t('dialogam em harmonia'), t('fluem juntos')],
-  square: [t('entram em tensão'), t('puxam direções diferentes')],
-  sextile: [t('cooperam'), t('se conectam com facilidade')],
-};
+export const aspect = aspectSources(lang);
 
-export function aspectText(kind, fromName, toName, context = 'natal') {
-  const base = aspect[kind];
-  const ph = ASPECT_PHRASE[kind];
-  if (!base || !ph) return '';
+const aspectPhrases = language => ({
+  conjunction: [t('se fundem', undefined, language), t('estão unidos', undefined, language)],
+  opposition: [t('se opõem', undefined, language), t('ficam frente a frente', undefined, language)],
+  trine: [t('dialogam em harmonia', undefined, language), t('fluem juntos', undefined, language)],
+  square: [t('entram em tensão', undefined, language), t('puxam direções diferentes', undefined, language)],
+  sextile: [t('cooperam', undefined, language), t('se conectam com facilidade', undefined, language)],
+});
+
+export function aspectText(kind, fromName, toName, context = 'natal', language = lang) {
+  const base = aspectSources(language)[kind];
+  if (!base) return '';
+  const ph = aspectPhrases(language)[kind];
   const lead = {
-    natal: t('No mapa natal, {from} e {to} {phrase}.', { from: fromName, to: toName, phrase: ph[0] }),
-    transit: t('Neste trânsito, {from} no céu atual e {to} do mapa natal {phrase}, tema que pode ficar em evidência por um período.', { from: fromName, to: toName, phrase: ph[0] }),
-    synastry: t('Na comparação entre dois mapas, {from} de uma pessoa e {to} da outra {phrase}.', { from: fromName, to: toName, phrase: ph[1] }),
-  }[context] ?? t('{from} e {to} {phrase}.', { from: fromName, to: toName, phrase: ph[0] });
+    natal: t('No mapa natal, {from} e {to} {phrase}.', { from: fromName, to: toName, phrase: ph[0] }, language),
+    transit: t('Neste trânsito, {from} no céu atual e {to} do mapa natal {phrase}, tema que pode ficar em evidência por um período.', { from: fromName, to: toName, phrase: ph[0] }, language),
+    synastry: t('Na comparação entre dois mapas, {from} de uma pessoa e {to} da outra {phrase}.', { from: fromName, to: toName, phrase: ph[1] }, language),
+  }[context] ?? t('{from} e {to} {phrase}.', { from: fromName, to: toName, phrase: ph[0] }, language);
   return `${lead} ${base}`;
 }
 

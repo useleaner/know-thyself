@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MODES, modeInfo, buildMapState, rotationDays, addDays, angleDelta, balanceSummary, findBody, findAspect, houseOf, natalChart, mapAspects, fixtureSceneData } from './map-data.js';
+import { MODES, modeInfo, buildMapState, rotationDays, addDays, angleDelta, balanceSummary, findBody, findAspect, houseOf, natalChart, mapAspects, fixtureSceneData, crossAspects, PLANETS } from './map-data.js';
 import { readFileSync } from 'node:fs';
 const [albaReference] = JSON.parse(readFileSync(new URL('./fixtures/astro-seek-cases.json', import.meta.url))).cases;
 const dms = text => text.split(':').map(Number).reduce((sum, part, i) => sum + part / 60 ** i, 0);
@@ -93,6 +93,37 @@ test('synastry uses the partner ring or explains the missing partner without inv
   assert.ok(both.dayAspect.from.startsWith('transit-'));
 });
 
+test('combined mode resolves its exact day aspect without changing synastry lines', () => {
+  const state = buildMapState({ profile: alba, partner, mode: 'synastry-transits', date: day });
+  const lines = structuredClone(state.aspects);
+  assert.ok(state.dayAspect);
+  assert.ok(!state.aspects.includes(state.dayAspect));
+  assert.equal(findAspect(state, state.dayAspect.id), state.dayAspect);
+  assert.equal(findAspect(state, `${state.dayAspect.id}-missing`), null);
+  assert.equal(findAspect({ aspects: [], dayAspect: null }, undefined), null);
+  assert.equal(findAspect(state, state.aspects[0].id), state.aspects[0]);
+  assert.deepEqual(state.aspects, lines);
+  assert.equal(state.scene.aspects, state.aspects);
+  assert.ok(state.scene.aspects.every(aspect => aspect.from.startsWith('partner-')));
+});
+
+test('polar partner fallback keeps its warning and leaves the principal house system unchanged', () => {
+  const polar = { ...partner, name: 'Noa', birthDate: '1994-06-21', birthTime: '12:00', lat: 78.2232, lon: 15.6469, timezone: 'Arctic/Longyearbyen' };
+  const inputs = { profile: alba, partner: polar, mode: 'synastry', date: day, houseSystem: 'placidus' };
+  const before = structuredClone(inputs);
+  const state = buildMapState(inputs);
+  assert.equal(state.houseSystem, 'placidus');
+  assert.equal(state.natal.houseSystem, 'placidus');
+  assert.equal(state.partnerChart.houseSystem, 'equal');
+  assert.equal(state.partnerWarning, natalChart(polar, 'placidus').warning);
+  assert.match(state.partnerWarning, /Placidus.*casas iguais/);
+  assert.equal(state.warning, undefined);
+  assert.deepEqual(inputs, before);
+  const equal = buildMapState({ ...inputs, houseSystem: 'equal' });
+  assert.equal(equal.partnerChart.houseSystem, 'equal');
+  assert.equal(equal.partnerWarning, undefined, 'requested equal houses need no fallback warning');
+});
+
 test('profiles without coordinates or birth time give a clear empty state', () => {
   assert.equal(buildMapState({ profile: null }).reason, 'no-profile');
   const noPlace = buildMapState({ profile: { ...alba, lat: null, lon: null, timezone: null } });
@@ -124,7 +155,7 @@ test('settings: visible points, sidereal zodiac and manual orbs reach the state'
   const shown = buildMapState({ profile: alba, mode: 'natal', points: { node: false, ceres: true } });
   assert.deepEqual(shown.natal.bodies.map(body => body.id).slice(10), ['lilith', 'chiron', 'ceres']);
   assert.ok(!shown.aspects.some(aspect => [aspect.from, aspect.to].includes('node')));
-  assert.ok(!shown.aspects.some(aspect => [aspect.from, aspect.to].some(id => ['chiron', 'ceres'].includes(id))), 'no aspects without readings');
+  assert.ok(!shown.aspects.some(aspect => [aspect.from, aspect.to].some(id => ['chiron', 'ceres'].includes(id))), 'no minor-body aspects without an authored pair catalog');
   assert.deepEqual(shown.balance.wheels.map(wheel => wheel.total), [15, 15, 15], 'hidden points still count like Astro-Seek');
   const sidereal = buildMapState({ profile: alba, mode: 'natal', zodiac: 'sidereal' });
   assert.equal(sidereal.zodiac, 'sidereal');
@@ -141,4 +172,65 @@ test('frase de peso: categoria mais acima e mais abaixo da média', async () => 
   assert.equal(balanceSummary(counts).influence, 'Ar pesa mais; Terra quase não influencia.');
   const even = { element: { Fogo: 3, Terra: 3, Ar: 3, 'Água': 3 }, quality: { Cardinal: 4, Fixa: 4, 'Mutável': 4 }, duality: { Feminina: 6, Masculina: 6 }, missing: [] };
   assert.equal(balanceSummary(even).influence, balanceSummary(even).predominance);
+});
+
+
+test('scene includes calculated visible minor bodies (Chiron, asteroids), preserving aspects and outer planets', () => {
+  for (const mode of MODES.map(item => item.id)) {
+    const shown = buildMapState({ profile: alba, partner, mode, date: day, points: { chiron: true, ceres: true } });
+    const hidden = buildMapState({ profile: alba, partner, mode, date: day, points: { chiron: false, ceres: true } });
+    const chiron = shown.natal.bodies.find(body => body.id === 'chiron');
+    assert.equal(shown.scene.natal.chiron.longitude, chiron.longitude, `Chiron shows in ${mode}`);
+    assert.equal(hidden.scene.natal.chiron, undefined);
+    assert.equal(shown.scene.natal.ceres.longitude, shown.natal.bodies.find(body => body.id === 'ceres').longitude, `Ceres shows in ${mode}`);
+    assert.equal(shown.scene.natal.pallas, undefined, 'hidden asteroids stay out of the scene');
+    assert.deepEqual(shown.aspects, hidden.aspects);
+    assert.deepEqual(shown.scene.outer, hidden.scene.outer);
+    assert.deepEqual(shown.balance, hidden.balance);
+  }
+});
+
+// Avançar apenas o céu mantém o mapa natal como referência fixa.
+for (const mode of ['transits', 'synastry-transits']) {
+  test(`${mode}: direção dos aspectos e do dia segue o orbe com alvo natal fixo`, () => {
+    const directions = new Set(), motions = new Set();
+    for (const at of ['2026-10-17T18:00:00Z', '2026-10-20T18:00:00Z', '2026-10-23T18:00:00Z', '2026-10-27T18:00:00Z']) {
+      const date = new Date(at);
+      const state = buildMapState({ profile: alba, partner, mode, date });
+      const later = buildMapState({ profile: alba, partner, mode, date: new Date(+date + 60000) });
+      // A sinastria continua nas linhas; seu aspecto do dia é trânsito × natal.
+      const transits = mode === 'transits' ? state.aspects : buildMapState({ profile: alba, mode: 'transits', date }).aspects;
+      const laterTransits = mode === 'transits' ? later.aspects : buildMapState({ profile: alba, mode: 'transits', date: later.date }).aspects;
+      for (const aspect of transits) {
+        const after = laterTransits.find(item => item.id === aspect.id);
+        assert.ok(after, aspect.id);
+        assert.ok(Math.abs(after.orb - aspect.orb) > 1e-8, 'fixture away from exact/stationary instants');
+        assert.equal(aspect.applying, after.orb < aspect.orb, `${at} ${aspect.id}`);
+        directions.add(aspect.applying);
+        motions.add(findBody(state, aspect.from).retrograde);
+      }
+      const best = transits.reduce((a, b) => b.orb < a.orb ? b : a);
+      assert.deepEqual(state.dayAspect, best);
+      const afterDay = laterTransits.find(item => item.id === state.dayAspect.id);
+      assert.equal(state.dayAspect.applying, afterDay.orb < state.dayAspect.orb, `${at} dayAspect`);
+    }
+    assert.deepEqual([...directions].sort(), [false, true], 'approaching and separating');
+    assert.deepEqual([...motions].sort(), [false, true], 'direct and retrograde');
+  });
+}
+
+test('fixing transit targets preserves natal/synastry aspects, positions, orbs and stored speeds', () => {
+  const natal = buildMapState({ profile: alba, mode: 'natal', date: day });
+  const synastry = buildMapState({ profile: alba, partner, mode: 'synastry', date: day });
+  const both = buildMapState({ profile: alba, partner, mode: 'synastry-transits', date: day });
+  const transit = buildMapState({ profile: alba, mode: 'transits', date: day });
+  const natalBodies = natal.natal.bodies.filter(body => PLANETS.includes(body.id) || ['node', 'lilith'].includes(body.id));
+  assert.deepEqual(natal.aspects, crossAspects(natalBodies, natalBodies));
+  assert.deepEqual(synastry.aspects, crossAspects(synastry.outer[0].bodies, synastry.natal.bodies.filter(body => PLANETS.includes(body.id))));
+  assert.deepEqual(both.aspects, synastry.aspects);
+  for (const state of [synastry, both, transit]) assert.deepEqual(state.natal, natal.natal);
+  assert.deepEqual(transit.sky, both.sky);
+  assert.deepEqual(transit.natal.bodies.map(body => body.speed), natalChart(alba).chart.bodies.filter(body => natal.natal.bodies.some(item => item.id === body.id)).map(body => body.speed));
+  const withoutDirection = aspects => aspects.map(({ applying, ...aspect }) => aspect);
+  assert.deepEqual(withoutDirection(transit.aspects), withoutDirection(crossAspects(transit.outer[0].bodies, transit.natal.bodies.filter(body => PLANETS.includes(body.id)))));
 });

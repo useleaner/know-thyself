@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import EN from './i18n-en.js';
-import { natalTranslations } from './natal-catalog.js';
+import { natalTranslations, translationPairs } from './natal-catalog.js';
+import { bodyMeanings, pairedTexts, explicitExamples } from './aspect-context-texts.js';
 import { cabalaTranslations } from './cabala-catalog.js';
 import { t, detectLang, LANG_KEY } from './i18n.js';
 
@@ -14,7 +15,8 @@ const LIT = String.raw`'((?:[^'\\\n]|\\.)*)'`;
 
 // Mesmas regras do translateDom: textos e atributos legíveis do HTML; primeiro argumento literal de t() no JS.
 function sourceKeys() {
-  const keys = new Set([...Object.keys(natalTranslations), ...Object.keys(cabalaTranslations)]);
+  const keys = new Set([...Object.keys(natalTranslations), ...Object.keys(cabalaTranslations),
+    ...translationPairs({ bodyMeanings, pairedTexts, explicitExamples }).map(([source]) => source)]);
   const add = text => { const key = norm(text); if (/[A-Za-zÀ-ú]/.test(key)) keys.add(key); };
   for (const file of readdirSync(dir).filter(name => name.endsWith('.js') && !name.startsWith('i18n') && !name.endsWith('.test.mjs'))) {
     const code = read(file);

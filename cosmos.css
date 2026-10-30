@@ -1,4 +1,4 @@
-/* v09: a cena compartilha os fundos e mantém cada leitura no próprio scroll. */
+/* A cena compartilha os fundos e mantém cada leitura no próprio scroll. */
 :root { --cosmic-light: #f8e6c7; --cosmic-muted: #d6d7f0; }
 .device { height: calc(100svh - 32px); width: calc((100svh - 32px) * 9 / 16); border-radius: 20px; }
 .atmosphere { z-index: -1; }
@@ -37,7 +37,7 @@
 .solar-canvas { filter: saturate(1.55) contrast(1.04); }
 /* Gaveta aberta: o disco recua para o fundo — desfocado e apagado, sem competir com a leitura. */
 .solar-surface { transition: filter .5s cubic-bezier(.22, 1, .36, 1), opacity .5s cubic-bezier(.22, 1, .36, 1); }
-.device:has(#map-panel[data-raised="true"]) .solar-surface { filter: blur(7px) saturate(.8); opacity: .32; }
+.device:has(#map-panel[data-raised="true"]) .solar-surface { z-index: 1; filter: blur(7px) saturate(.8); opacity: .32; }
 /* Com zoom, o disco vem à frente: a gaveta fechada recua até ser tocada. */
 .device[data-disc-zoomed] #map-panel:not([data-raised="true"]) > * { opacity: .18; transition: opacity .4s ease; }
 .device[data-disc-zoomed] #map-panel:not([data-raised="true"])::before { opacity: .35; }
@@ -86,7 +86,7 @@
 .balance-reading { margin: 18px 0 4px; padding: 3px 4px; }
 .balance-reading h3 { margin: 0 0 8px; color: #f4dfbd; font-size: 20px; }
 .map-study:focus-visible, .map-reading :focus-visible, .balance-trigger:focus-visible { outline: 2px solid #f4d7a8; outline-offset: 3px; }
-/* 2.C: mapa calculado — calendário, modos, painel elevável e segundo conjunto de corpos. */
+/* Mapa calculado — calendário, modos, painel elevável e segundo conjunto de corpos. */
 .map-scroll { --panel-collapsed: 178px; width: 128%; margin-left: -14%; padding: 0 14% calc(var(--panel-collapsed) + 12px); }
 .map-calendar { position: relative; margin: 0 -12%; padding: 0 0 8px; }
 .map-calendar::before { content: ""; position: absolute; z-index: 0; bottom: 2px; left: 50%; width: 4px; height: 4px; transform: translateX(-50%); border-radius: 50%; background: #f3d6a7; box-shadow: 0 0 8px 1px #f3d6a7aa; pointer-events: none; }
@@ -124,7 +124,8 @@
 /* Só o corpo rola; fora dele, puxar para baixo é sempre da folha (pan-y nativo cancelaria o gesto). */
 .map-panel[data-raised="true"] > :not(.map-panel-body) { touch-action: none; }
 /* Aberta: véu translúcido — a nebulosa continua visível como aura; o disco recua (ver .solar-surface). */
-.map-panel[data-raised="true"]::before { background: radial-gradient(70% 22% at 50% 0, #f1d9a814, transparent 70%), linear-gradient(#0a103080, #080c24a8 30%, #070b1fb8); }
+.map-panel[data-raised="true"]::before,
+.orbit-area[data-area="correspondences"][data-active="true"]::before { background: radial-gradient(70% 22% at 50% 0, #f1d9a814, transparent 70%), linear-gradient(#0a103080, #080c24a8 30%, #070b1fb8); }
 .map-panel[data-dragging] { transition: none; -webkit-user-select: none; user-select: none; }
 @media (prefers-reduced-motion: reduce) { .map-panel, .panel-handle svg { transition: none; } }
 .map-panel-header { position: relative; display: flex; align-items: center; flex-shrink: 0; min-height: 44px; gap: 8px; touch-action: none; }
@@ -169,7 +170,11 @@
 .panel-muted, .map-panel-body > .panel-muted { color: #c7bdd9; font-size: 12px; line-height: 1.6; }
 .panel-link { padding: 0; border: 0; background: none; color: #f6e4ca; font: 600 14px/1.6 Space, sans-serif; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
 .position-list { margin: 0; padding: 0; list-style: none; }
-.position-list li { display: grid; grid-template-columns: 22px 92px 1fr; align-items: center; gap: 6px; min-height: 32px; font-size: 14px; color: #efe6f6; }
+.position-list li, .position-link { display: grid; grid-template-columns: 22px 92px minmax(0,1fr); align-items: center; gap: 6px; min-height: 32px; font-size: 14px; color: #efe6f6; }
+.position-list li:has(> .position-link) { display: block; }
+.position-link { width: 100%; min-height: 44px; padding: 4px 0; border: 0; background: transparent; font-family: inherit; text-align: left; cursor: pointer; }
+.position-link .position-name { text-decoration: underline; text-underline-offset: 3px; }
+.position-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .position-glyph { color: #e7c891; font-family: 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif; font-size: 16px; text-align: center; }
 .position-sign abbr { text-decoration: none; color: #e5a1ae; }
 .solar-outer-label { opacity: .95; }
@@ -183,9 +188,21 @@
 .map-reading-glyph { color: #e7c891; font-family: 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', serif; font-size: 17px; }
 #map-reading-title { font-size: 13px; line-height: 1.25; color: #fff0d8; }
 .map-reading-detail h3 { margin: 8px 0 2px; font-size: 13px; color: #f4dfbd; }
-.map-reading-detail p { margin: 0 0 6px; }
+.map-reading-detail p { margin: 0 0 6px; overflow-wrap: anywhere; }
+.natal-interpretation { margin: 12px 0; border-block: 1px solid var(--line); }
+.natal-interpretation summary { justify-content: space-between; min-height: 48px; gap: 12px; padding-block: 10px; color: var(--gold); font: 400 13px/1.5 Space,sans-serif; }
+.natal-interpretation summary .chevron { flex: 0 0 16px; }
+.natal-interpretation[open] summary .chevron { transform: rotate(180deg); }
+.natal-interpretation summary:hover { color: #fff1d6; }
+.natal-interpretation summary:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+#study-sheet details { margin: 12px 0; border-block: 1px solid var(--line); }
+#study-sheet summary { justify-content: space-between; min-height: 48px; gap: 12px; padding-block: 10px; color: var(--gold); font: 400 14px/1.5 Space,sans-serif; }
+#study-sheet summary::after { content: ''; flex: 0 0 8px; width: 8px; height: 8px; margin: 0 4px 4px auto; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+#study-sheet details[open] summary::after { transform: rotate(225deg); margin-bottom: 0; }
+#study-sheet summary:hover { color: #fff1d6; }
+#study-sheet summary:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
 .map-reading .map-influence { color: #e6cfaf; font-size: 12px; }
-.tree-tabs { position: relative; top: auto; margin: 14px 0 0; padding: 0; gap: 0; border: 0; border-radius: 0; background: none; box-shadow: none; backdrop-filter: none; }
+.tree-tabs { position: sticky; top: 0; margin: 14px 0 0; padding: 0; gap: 0; border: 0; border-radius: 0; background: none; box-shadow: none; backdrop-filter: none; }
 .tree-tabs::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--hairline); opacity: .45; pointer-events: none; }
 .tree-tabs button { min-height: 44px; font-size: 11px; letter-spacing: .08em; border: 0; border-radius: 0; background: none; color: #cfc7e0a6; }
 .tree-tabs button[aria-selected="true"] { border: 0; background: radial-gradient(50% 70% at 50% 100%, #f1d9a824, transparent 72%), linear-gradient(90deg, transparent 18%, #f1d9a8 50%, transparent 82%) bottom / 100% 1px no-repeat; box-shadow: none; color: #fff2dc; }
@@ -210,8 +227,8 @@
 .planet-choice:hover { background: #c1b1e535; }
 .orbit-area[data-active="false"] .planet-selector { visibility: hidden; }
 .moon-title { text-align: center; max-width: none; font-size: 26px; color: #fff0d8; margin: 0 0 8px; }
-/* Correspondências: o mesmo véu da gaveta aberta; por baixo, a aura difusa que o disco desfocado dá à gaveta. */
-.orbit-area[data-area="correspondences"][data-active="true"]::before { content: ""; position: absolute; z-index: -1; inset: -24px -20% -40px; pointer-events: none; background: radial-gradient(70% 22% at 50% 0, #f1d9a814, transparent 70%), linear-gradient(#0a103080, #080c24a8 30%, #070b1fb8), radial-gradient(36% 24% at 50% 36%, #f3c98a8c, transparent 72%), radial-gradient(50% 32% at 30% 52%, #6b92e080, transparent 75%), radial-gradient(46% 30% at 72% 58%, #d47fae6b, transparent 75%), radial-gradient(64% 42% at 50% 78%, #7a6bd659, transparent 78%); background-blend-mode: normal, normal, screen, screen, screen, screen; -webkit-backdrop-filter: blur(16px) saturate(1.15); backdrop-filter: blur(16px) saturate(1.15); -webkit-mask: linear-gradient(transparent, #000 72px, #000 calc(100% - 60px), transparent), linear-gradient(90deg, transparent, #000 24%, #000 76%, transparent); -webkit-mask-composite: source-in; mask: linear-gradient(transparent, #000 72px, #000 calc(100% - 60px), transparent) intersect, linear-gradient(90deg, transparent, #000 24%, #000 76%, transparent); }
+/* Correspondências reutiliza o véu aberto; sem auras coloridas adicionais. */
+.orbit-area[data-area="correspondences"][data-active="true"]::before { content: ""; position: absolute; z-index: -1; inset: -24px -20% -40px; pointer-events: none; -webkit-backdrop-filter: blur(16px) saturate(1.15); backdrop-filter: blur(16px) saturate(1.15); -webkit-mask: linear-gradient(transparent, #000 72px, #000 calc(100% - 40px), transparent calc(100% + 4px)), linear-gradient(90deg, transparent, #000 24%, #000 76%, transparent); -webkit-mask-composite: source-in; mask: linear-gradient(transparent, #000 72px, #000 calc(100% - 40px), transparent calc(100% + 4px)) intersect, linear-gradient(90deg, transparent, #000 24%, #000 76%, transparent); }
 /* Mesmo véu da gaveta aberta: a nebulosa segue visível; divisórias são fios que se dissolvem nas pontas. */
 .planet-facts { margin: 0 2px; font-size: 12px; }
 .planet-facts > div { display: grid; grid-template-columns: .85fr 1.15fr; align-items: start; gap: 15px; padding: 14px 0; border-bottom: 1px solid; border-image: linear-gradient(90deg, transparent, #d8c5ea33 18%, #d8c5ea33 82%, transparent) 1; }
@@ -272,3 +289,11 @@
 .settings-button { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: 6px; border-radius: 50%; background: radial-gradient(circle, #f1d9a814, transparent 68%); color: #f1d9a8; }
 .settings-button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 .settings-button:focus-visible { outline: 2px solid #f4d7a8; outline-offset: 2px; }
+
+/* Dica única da conta vazia: balão sob o nome, com a pontinha apontando para ele. */
+.profile-hint { position: absolute; z-index: 6; top: 52px; left: 20px; max-width: min(280px, calc(100% - 40px)); margin: 0; padding: 10px 14px; border: 1px solid #f1d9a855; border-radius: 14px; background: #121a3ef2; color: #f3edf9; font-size: 13px; line-height: 1.4; box-shadow: 0 8px 24px #02061a99; animation: profile-hint-in 420ms cubic-bezier(.2,.8,.2,1) 700ms backwards; cursor: pointer; }
+.profile-hint::before { content: ""; position: absolute; top: -6px; left: 22px; width: 10px; height: 10px; background: inherit; border-left: 1px solid #f1d9a855; border-top: 1px solid #f1d9a855; transform: rotate(45deg); }
+.cosmos-header .profile-button.is-hinted .profile-name { animation: profile-hint-glow 2.4s ease-in-out infinite; }
+@keyframes profile-hint-in { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes profile-hint-glow { 50% { text-shadow: 0 0 14px #f1d9a8cc; } }
+@media (prefers-reduced-motion: reduce) { .profile-hint, .cosmos-header .profile-button.is-hinted .profile-name { animation: none; } }

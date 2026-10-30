@@ -2,6 +2,37 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initLogin, initApp, initLogout } from './login.js';
 
+test('logout confirms server or browser revocation, and preserves the session if both fail', async () => {
+  for (const [serverOK, browserOK] of [[true, false], [false, true], [false, false]]) {
+    const f = fixture(), requests = [];
+    const subscription = { endpoint: 'https://fcm.googleapis.com/fcm/send/synthetic', async unsubscribe() { if (!browserOK) throw Error('browser'); return true; } };
+    initLogout({ ...f.options,
+      serviceWorker: { async getRegistration() { return { pushManager: { async getSubscription() { return subscription; } } }; } },
+      request: async (url, options) => { requests.push([url, options]); return { ok: url === '/api/notifications' ? serverOK : true }; }
+    });
+    const event = f.logout(); await event.done;
+    if (serverOK || browserOK) {
+      assert.equal(requests.at(-1)[0], '/api/auth?action=logout');
+      assert.deepEqual(f.navigations, ['/previews/antes/']);
+    } else {
+      assert.equal(requests.length, 1);
+      assert.deepEqual(f.navigations, []);
+      assert.equal(event.button.disabled, false);
+      assert.match(f.nodes['account-status'].textContent, /desativar as notificações/);
+    }
+  }
+});
+
+test('logout with unknown push state permits retry and never claims to have signed out', async () => {
+  const f = fixture();
+  initLogout({ ...f.options, serviceWorker: { async getRegistration() { throw Error('unavailable'); } } });
+  const event = f.logout(); await event.done;
+  assert.equal(f.requests.length, 0);
+  assert.deepEqual(f.navigations, []);
+  assert.equal(event.button.disabled, false);
+  assert.match(f.nodes['account-status'].textContent, /tente sair novamente/);
+});
+
 function fixture({ session = { configured: false, user: null }, responseOK = true, failRequest = false, failLoad = false, authError = '', privatePage = false, consent = true } = {}) {
   const nodes = Object.fromEntries(['login-consent', 'login-gate', 'login-screen', 'app-content', 'google-login', 'google-login-label', 'login-message', 'profile-button', 'account-status', 'auth-status', 'email-divider', 'email-login', 'code-login', 'login-email', 'login-code', 'code-resend', 'code-change', 'code-email', 'email-send', 'code-submit'].map(id => [id, {
     checked: consent, value: '', checkValidity() { return this.value.includes('@'); },
@@ -13,8 +44,8 @@ function fixture({ session = { configured: false, user: null }, responseOK = tru
   const root = { listeners: {}, querySelector: selector => nodes[selector.slice(1)], addEventListener(type, fn) { this.listeners[type] = fn; } };
   let loaded = 0, googleOptions, popupRequests = 0;
   const options = {
-    root, pageURL: `https://know.example/previews/antes/${privatePage ? 'universo.html' : ''}${authError ? `?auth_error=${authError}` : ''}`,
-    request: async (url, opts) => { requests.push([url, opts]); if (failRequest) throw Error('network'); return { ok: responseOK, json: async () => session?.configured ? { clientId: '123-test.apps.googleusercontent.com', ...session } : session }; },
+    root, storage: { getItem() { return null; } }, pageURL: `https://know.example/previews/antes/${privatePage ? 'universo.html' : ''}${authError ? `?auth_error=${authError}` : ''}`,
+    request: async (url, opts) => { requests.push([url, opts]); if (failRequest) throw Error('network'); if (url === '/api/profiles') return { ok: responseOK, status: responseOK ? 200 : 503, json: async () => ({ accountId: 'test-account', revision: 0, state: null }) }; return { ok: responseOK, json: async () => session?.configured ? { clientId: '123-test.apps.googleusercontent.com', ...session } : session }; },
     loadGoogle: async () => ({ initCodeClient(options) { googleOptions = options; return { requestCode() { popupRequests++; } }; } }),
     navigate: url => navigations.push(url), history: { replaceState: (...args) => histories.push(args) },
     loadApp: async () => { loaded++; if (failLoad) throw Error('module'); return {}; }
@@ -304,4 +335,39 @@ test('logout compartilhado bloqueia clique repetido e tolera ausência da mensag
   assert.equal(f.requests.length, 1);
   assert.equal(f.requests[0][1].method, 'POST');
   assert.deepEqual(f.navigations, ['/previews/antes/']);
+});
+
+test('banco indisponível nunca abre app nem revela legado, e a retentativa pode recuperar a conta', async () => {
+  const f = fixture({ session: { configured: true, user: { email: 'qa@example.test' } }, privatePage: true });
+  const original = f.options.request;
+  f.options.request = async (url, options) => url === '/api/profiles' ? { ok: false, status: 503 } : original(url, options);
+  await initApp(f.options);
+  assert.equal(f.loaded, 0);
+  assert.equal(f.nodes['app-content'].hidden, true);
+  f.options.request = original;
+  await initApp(f.options);
+  assert.equal(f.loaded, 1);
+});
+
+test('retorno do login só aceita destino de perfil conhecido, nunca URL arbitrária', async () => {
+  for (const [query, expected] of [['profile', '/previews/antes/perfil.html'], ['https://outside.example', '/previews/antes/universo.html']]) {
+    const f = fixture({ session: { configured: true, user: { email: 'qa@example.test' } } });
+    f.options.pageURL += `?return=${encodeURIComponent(query)}`;
+    await initLogin(f.options);
+    assert.equal(f.navigations[0], expected);
+  }
+});
+
+
+test('sessão expirada ao abrir perfis oferece reentrada sem revelar conteúdo', async () => {
+  const f = fixture({ session: { configured: true, user: { email: 'qa@example.test' } }, privatePage: true });
+  const original = f.options.request, actions = [];
+  f.root.createElement = () => ({ addEventListener(event, action) { this.action = action; } });
+  f.nodes['auth-status'].append = (...items) => actions.push(...items.filter(item => typeof item === 'object'));
+  f.options.request = (url, options) => url === '/api/profiles' ? Promise.resolve({ ok: false, status: 401 }) : original(url, options);
+  await initApp(f.options);
+  assert.equal(f.loaded, 0); assert.equal(f.nodes['app-content'].hidden, true);
+  assert.match(f.nodes['auth-status'].textContent, /Sua sessão terminou/);
+  assert.equal(actions[0].textContent, 'Entrar novamente');
+  actions[0].action(); assert.equal(f.navigations[0], '/previews/antes/');
 });

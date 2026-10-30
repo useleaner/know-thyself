@@ -1,10 +1,12 @@
-import { MODES, modeInfo, buildMapState, emptySceneData, findBody, findAspect, rotationDays, addDays, SIGN_NAMES, SIGN_GLYPHS, BODY_GLYPHS, ASPECT_INFO, formatDegree } from './map-data.js';
+import { MINOR_BODIES, MODES, modeInfo, buildMapState, emptySceneData, findBody, findAspect, rotationDays, addDays, SIGN_NAMES, SIGN_GLYPHS, BODY_GLYPHS, ASPECT_INFO, formatDegree, PLANETS } from './map-data.js';
 import { escapeHTML, renderProfileHeader, renderCalendarDays, renderWheel, renderPanelBody, renderBalanceReading, aspectTitle, orbText, isoDay, isoTime, longDate } from './map-readings.js';
 import { planetInSign, planetInHouse, influence, aspectText } from './interpretations.js';
 import * as profileStore from './profiles.js';
 import { tick } from './haptics.js';
+import { showFirstProfileHint } from './first-profile-hint.js';
 import { t, lang } from './i18n.js';
-import { natalSignReading, natalHouseReading, natalRetrogradeReading, natalDignityReading, natalAspectReading, natalAngleReading } from './natal-readings.js';
+import { natalPositionLearning, natalAspectLearning, transitAspectLearning, contextAspectReading, natalSignReading, natalHouseReading, natalRetrogradeReading, natalDignityReading, natalAspectReading, natalAngleReading } from './natal-readings.js';
+import { notificationLink } from './notification-link.js';
 
 
 const ordinal = house => lang === 'en' ? `${house}${[, 'st', 'nd', 'rd'][house % 100 > 10 && house % 100 < 14 ? 0 : house % 10] || 'th'} House` : `${house}ª Casa`;
@@ -21,6 +23,10 @@ const readingHeader = (glyph, title, expanded = true) => `<header class="map-rea
     <span class="map-reading-dots" aria-hidden="true">⋮</span><span class="map-reading-glyph" aria-hidden="true">${glyph}</span><span id="map-reading-title">${title}</span>
   </button></h2></header>`;
 
+const learningSection = learning => learning ? `<section class="natal-learning"><h3>${escapeHTML(learning.title)}</h3>${learning.paragraphs.map(paragraph => `<p>${escapeHTML(paragraph)}</p>`).join('')}</section>` : '';
+
+const interpretationStart = learning => learning ? `<details class="natal-interpretation"><summary><span>${escapeHTML(learning.detailTitle)}</span><svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>` : '';
+
 export function renderMapReading(selection, state, expanded = true) {
   if (!selection || state?.status !== 'ok') return '';
   if (selection.kind === 'aspect') {
@@ -28,12 +34,16 @@ export function renderMapReading(selection, state, expanded = true) {
     if (!aspect) return '';
     const from = findBody(state, aspect.from);
     const to = findBody(state, aspect.to);
+    if (!from || !to) return '';
     const context = from.set === 'transit' ? 'transit' : from.set === 'partner' ? 'synastry' : 'natal';
     const authored = context === 'natal' ? natalAspectReading(aspect) : '';
     if (context === 'natal' && !authored) return '';
+    const learning = context === 'transit' ? transitAspectLearning(aspect, state) : natalAspectLearning(aspect, state);
+    const contextual = contextAspectReading(aspect, state);
     return `${readingHeader(`${BODY_GLYPHS[from.base]}&#xFE0E;`, aspectTitle(state, aspect), expanded)}<div id="map-reading-detail" class="map-reading-detail"${expanded ? '' : ' hidden'}>
-      <p>${escapeHTML(authored || aspectText(aspect.kind, from.name, to.name, context))}</p>
+      ${contextual ? `${learningSection(contextual)}${interpretationStart(contextual)}${learningSection(learning)}` : `${learningSection(learning)}${interpretationStart(learning)}<p>${escapeHTML(authored || aspectText(aspect.kind, from.name, to.name, context))}</p>${learning ? '</details>' : ''}`}
       <dl class="map-position"><div><dt>${t('Aspecto')}</dt><dd>${ASPECT_INFO[aspect.kind].name} · ${aspect.angle}°</dd></div><div><dt>${t('Orbe')}</dt><dd>${orbText(aspect)}</dd></div></dl>
+      ${contextual ? '</details>' : ''}
       <section aria-labelledby="map-related-title"><h3 id="map-related-title">${t('Astros desta conexão')}</h3><div class="map-related"><button type="button" data-map-body="${from.id}">${t('Ver {body}', { body: who(state, from) })}</button><button type="button" data-map-body="${to.id}">${t('Ver {body}', { body: who(state, to) })}</button></div></section></div>`;
   }
   const body = findBody(state, selection.id);
@@ -52,10 +62,11 @@ export function renderMapReading(selection, state, expanded = true) {
   const retroText = body.set === 'natal' ? natalRetrogradeReading(body) : '';
   const dignityTexts = body.set === 'natal' ? natalDignityReading(body) : [];
   if (body.set === 'natal' && (!signText || !houseText)) return '';
+  const learning = natalPositionLearning(body);
   return `${readingHeader(`${BODY_GLYPHS[body.base]}&#xFE0E;`, bodyHeading(body, state), expanded)}<div id="map-reading-detail" class="map-reading-detail"${expanded ? '' : ' hidden'}>
-    <section><h3>${t('{body} em {sign}', { body: role, sign: SIGN_NAMES[body.sign] })}</h3><p>${escapeHTML(signText || planetInSign[body.base]?.[body.sign] || '')}</p>${body.set === 'natal' ? dignityTexts.map(item => `<h4>${item.label}${['uranus', 'neptune', 'pluto'].includes(body.base) ? ` · ${t('Regência moderna')}` : ''}</h4><p>${escapeHTML(item.text)}</p>`).join('') : `<p class="map-influence">${t('Influência dessa posição: {value}', { value: influence(body.base, body.sign) })}</p>`}</section>
+    ${learningSection(learning)}${interpretationStart(learning)}<section><h3>${t('{body} em {sign}', { body: role, sign: SIGN_NAMES[body.sign] })}</h3><p>${escapeHTML(signText || planetInSign[body.base]?.[body.sign] || '')}</p>${body.set === 'natal' ? dignityTexts.map(item => `<h4>${item.label}${['uranus', 'neptune', 'pluto'].includes(body.base) ? ` · ${t('Regência moderna')}` : ''}</h4><p>${escapeHTML(item.text)}</p>`).join('') : `<p class="map-influence">${t('Influência dessa posição: {value}', { value: influence(body.base, body.sign) })}</p>`}</section>
     <section><h3>${t(body.set === 'transit' ? '{body} na {house} natal' : '{body} na {house}', { body: role, house: ordinal(body.house) })}</h3><p>${escapeHTML(houseText || planetInHouse[body.base]?.[body.house] || '')}</p></section>
-    ${retroText ? `<section><h3>${t('Movimento retrógrado')}</h3><p>${escapeHTML(retroText)}</p></section>` : ''}
+    ${retroText ? `<section><h3>${t('Movimento retrógrado')}</h3><p>${escapeHTML(retroText)}</p></section>` : ''}${learning ? '</details>' : ''}
     <dl class="map-position"><div><dt>${t('Posição')}</dt><dd>${SIGN_NAMES[body.sign]} ${formatDegree(body)}</dd></div><div><dt>${t('Movimento')}</dt><dd>${body.retrograde ? t('Retrógrado') : t('Direto')}</dd></div></dl>
     ${related.length ? `<section aria-labelledby="map-related-title"><h3 id="map-related-title">${t('Conexões de {body}', { body: role })}</h3><div class="map-related">${related.map(aspect => `<button type="button" data-map-aspect="${aspect.id}">${aspectTitle(state, aspect)}</button>`).join('')}</div></section>` : ''}</div>`;
 }
@@ -64,7 +75,7 @@ const bodyLabel = (state, body) => body.set === 'natal' || body.set === 'earth' 
 export function selectableBodies(state) {
   if (state?.status !== 'ok') return [];
   const ids = ['sun', 'moon', 'mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto',
-    ...(state.mode.id === 'natal' ? ['node', 'lilith', 'asc', 'dsc', 'mc', 'ic'] : []),
+    ...(state.mode.id === 'natal' ? [...state.natal.bodies.filter(body => !PLANETS.includes(body.id)).map(body => body.id), 'asc', 'dsc', 'mc', 'ic'] : MINOR_BODIES.filter(id => state.scene.natal[id])),
     ...state.scene.outer.flatMap(set => set.bodies.map(body => body.id))];
   return ids.map(id => findBody(state, id)).filter(Boolean);
 }
@@ -87,8 +98,15 @@ export function initMapExplorer({ root, solar, header, profiles = profileStore, 
   const modeToggle = $('#mode-toggle');
   const modeOptions = $('#mode-options');
   const empty = $('#map-empty');
-  let mode = modeInfo(new URL(globalThis.location?.href || 'http://localhost/').searchParams.get('mode')).id;
-  let date = now();
+  const pageURL = globalThis.location?.href || 'http://localhost/';
+  const notification = notificationLink(pageURL, pageURL);
+  const MAP_VIEW_KEY = 'know-thyself.map-view';
+  let savedView;
+  try { savedView = JSON.parse(sessionStorage.getItem(MAP_VIEW_KEY)); } catch { /* navegação sem armazenamento */ }
+  const requestedMode = new URL(pageURL).searchParams.get('mode');
+  let mode = modeInfo(MODES.some(item => item.id === requestedMode) ? requestedMode : savedView?.mode).id;
+  const savedDate = typeof savedView?.date === 'string' ? new Date(savedView.date) : null;
+  let date = notification?.date || (Number.isFinite(savedDate?.getTime()) ? savedDate : now());
   let state = null;
   let selection = null;
   let expanded = true;
@@ -188,12 +206,14 @@ export function initMapExplorer({ root, solar, header, profiles = profileStore, 
   }
 
   function update() {
+    try { sessionStorage.setItem(MAP_VIEW_KEY, JSON.stringify({ mode, date: date.toISOString() })); } catch { /* navegação sem armazenamento */ }
     state = compute();
     root.dataset.empty = String(state.status !== 'ok');
     disc.setAttribute('aria-label', state.status === 'ok' ? t('Mapa 3D calculado do perfil ativo. Selecione um corpo ou uma linha.') : t('Disco do mapa vazio, sem planetas.'));
     root.dataset.mapMode = mode;
     const top = renderProfileHeader(state);
     if (header) { header.innerHTML = top.html; header.setAttribute('aria-label', top.label); header.setAttribute('href', state.mode.synastry ? `./perfil.html?compare=1&mode=${mode}` : './perfil.html'); }
+    if (header && state.reason === 'no-profile') showFirstProfileHint(header);
     empty.hidden = state.status === 'ok' || state.reason === 'no-profile';
     panel.inert = state.status !== 'ok';
     if (state.status !== 'ok') {
@@ -229,7 +249,7 @@ export function initMapExplorer({ root, solar, header, profiles = profileStore, 
     toggle.setAttribute('aria-expanded', String(next));
   }
 
-  // Trocar de corpo mantém o estado recolhido (L13); uma seleção nova a partir do nada abre expandida.
+  // Trocar de corpo mantém o estado recolhido; uma seleção nova a partir do nada abre expandida.
   function select(next, { keepExpanded = Boolean(selection), quiet = false } = {}) {
     const html = next ? renderMapReading(next, state, keepExpanded ? expanded : true) : '';
     if (next && !html) return;
@@ -278,10 +298,10 @@ export function initMapExplorer({ root, solar, header, profiles = profileStore, 
   function fitDisc() {
     if (panel.dataset.raised !== 'false' || !calendar) return;
     const top = calendar.getBoundingClientRect().bottom + 6;
-    const bottom = panel.getBoundingClientRect().top - sheetY + collapsedY() + 10;
+    const bottom = panel.getBoundingClientRect().top - sheetY + collapsedY() - 20;
     const flowTop = disc.getBoundingClientRect().top - parseFloat(getComputedStyle(disc).marginTop);
     disc.style.marginTop = `${Math.max(0, top - flowTop)}px`;
-    disc.style.height = `${Math.max(160, bottom - top)}px`;
+    disc.style.height = `${Math.max(120, bottom - top)}px`;
   }
   function revealSheet() { clearTimeout(hideTimer); panelBody.hidden = false; }
   function setRaised(raised) {
@@ -403,13 +423,18 @@ export function initMapExplorer({ root, solar, header, profiles = profileStore, 
   panel.addEventListener('wheel', event => {
     if (panel.dataset.raised === 'false' && event.deltaY > 4 && Math.abs(event.deltaY) > Math.abs(event.deltaX)) { event.preventDefault(); setRaised(true); }
   }, { passive: false });
+  let sheetFrame;
   const sheetObserver = new ResizeObserver(() => {
-    if (panel.dataset.raised !== 'false' || 'dragging' in panel.dataset) return;
-    panel.style.transition = 'none';
-    placeSheet(collapsedY());
-    fitDisc();
-    panel.offsetHeight;
-    panel.style.transition = '';
+    cancelAnimationFrame(sheetFrame);
+    // Geometria no próximo frame evita redimensionar dentro da entrega do observer.
+    sheetFrame = requestAnimationFrame(() => {
+      if (panel.dataset.raised !== 'false' || 'dragging' in panel.dataset) return;
+      panel.style.transition = 'none';
+      placeSheet(collapsedY());
+      fitDisc();
+      panel.offsetHeight;
+      panel.style.transition = '';
+    });
   });
   sheetObserver.observe(panel);
   sheetObserver.observe(predominance);
@@ -452,5 +477,9 @@ export function initMapExplorer({ root, solar, header, profiles = profileStore, 
   profiles.onProfilesChange?.(() => update());
   setRaised(false);
   update();
+  if (notification) {
+    if (state.profile?.id === notification.profile && findAspect(state, notification.aspect)) select({ kind: 'aspect', id: notification.aspect }, { keepExpanded: false });
+    else status.textContent = t('Esta leitura não está mais disponível. Confira o perfil e os ajustes do mapa.');
+  }
   return { select, syncView(next) { view = next; }, rotate, rotateEnd, setMode, setDate, getState: () => state };
 }

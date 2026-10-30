@@ -73,3 +73,25 @@ test('balanço soma 15 pontos, como o Astro-Seek', () => {
   assert.equal(Object.values(seek.element).reduce((s, n) => s + n, 0), 15);
   assert.deepEqual(seek.missing, []);
 });
+
+
+test('fixed-target direction matches finite differences through 0°/180° and is false at exactness', () => {
+  const target = { id: 'fixed', longitude: 0, speed: 0 };
+  for (const speed of [1, -1]) {
+    for (const longitude of [359.9, .1, 179.9, 180.1, 89.9, 90.1, 269.9, 270.1]) {
+      const moving = { id: 'moving', longitude, speed };
+      const [aspect] = computeAspects([moving], [target]);
+      const [later] = computeAspects([{ ...moving, longitude: (longitude + speed * .001 + 360) % 360 }], [target]);
+      assert.equal(aspect.applying, later.orb < aspect.orb, `${longitude}° speed ${speed}`);
+    }
+    for (const longitude of [0, 60, 90, 120, 180, 240, 270, 300]) {
+      const [exact] = computeAspects([{ id: 'moving', longitude, speed }], [target]);
+      assert.equal(exact.orb, 0);
+      assert.equal(exact.applying, false, `${longitude}° exact speed ${speed}`);
+    }
+  }
+  const moving = { id: 'moving', longitude: 100, speed: 1 };
+  // O motor genérico ainda usa ambas as velocidades para natal e sinastria.
+  assert.equal(computeAspects([moving], [{ id: 'other', longitude: 11, speed: 13 }])[0].applying, false);
+  assert.equal(computeAspects([moving], [{ id: 'other', longitude: 11, speed: 0 }])[0].applying, true);
+});

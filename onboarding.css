@@ -1,0 +1,18 @@
+.pwa-onboarding { position: fixed; z-index: 30; top: max(18px, env(safe-area-inset-top)); right: max(18px, env(safe-area-inset-right)); width: min(360px, calc(100vw - 36px)); max-height: 44svh; overflow: auto; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--night); color: var(--ink); }
+.pwa-onboarding[data-surface='app'] { top: auto; bottom: calc(96px + env(safe-area-inset-bottom)); }
+.pwa-onboarding h2 { max-width: none; margin: 0 0 12px; color: var(--gold); font: 600 22px/1.15 Bricolage, Space, sans-serif; }
+.pwa-onboarding p { margin: 0 0 12px; color: var(--soft); font: 400 14px/1.6 Space, sans-serif; }
+.pwa-onboarding-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.pwa-onboarding :is(a,button) { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px; color: var(--gold); font: 400 16px/1.3 Space, sans-serif; text-underline-offset: 4px; }
+.pwa-onboarding button { border: 1px solid var(--line); border-radius: 24px; background: transparent; }
+.pwa-onboarding :is(a,button):focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+/* A primeira visita deixa instalação e entrada no mesmo fluxo, sem cobrir a marca ou o consentimento. */
+.pwa-onboarding[data-surface='login'] { position: static; width: 100%; max-width: 340px; max-height: none; text-align: left; }
+.login-page:has(.pwa-onboarding[data-surface='login']) { height: auto; min-height: 100svh; overflow-y: auto; }
+.login-page:has(.pwa-onboarding[data-surface='login']) .device { height: auto; min-height: 100svh; container-type: normal; overflow: visible; }
+.login-page:has(.pwa-onboarding[data-surface='login']) .login-screen { position: relative; inset: auto; grid-template-rows: auto; overflow: visible; gap: 24px; }
+.login-page:has(.pwa-onboarding[data-surface='login']) .login-content { container-type: normal; gap: 16px; padding-block: 12px; }
+.login-page:has(.pwa-onboarding[data-surface='login']) .login-mark { flex: none; height: 110px; }
+.login-page:has(.pwa-onboarding[data-surface='login']) .login-content h1 { font-size: 44px; }
+.login-page:has(.pwa-onboarding[data-surface='login']) .login-description { font-size: 14px; }

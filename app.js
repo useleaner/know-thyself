@@ -1,15 +1,17 @@
 import { renderTree, spheres, beadStyles } from './tree.js';
-import { computeTree, pathCycles } from './cabala-engine.js?v=20261020-ciclos';
-import { sphereStudy, paths, sources } from './study-data.js';
+import { computeTree, pathCycles } from './cabala-engine.js?v=20261023-reference';
+import { sphereStudy, paths } from './study-data.js?v=20261024-cabala-clarity';
 import { sphereEnergyReading } from './sphere-energy.js';
 import { personalPathReading, sphereConnections } from './cabala-readings.js';
-import { cabalaLineTexts } from './cabala-path-texts.js';
+import { cabalaLearningTexts } from './cabala-learning-texts.js';
 import { initOrbit } from './orbit.js';
 import { initPlanetSelector } from './planet-selector.js?v=20261019-estrutura';
-import { initSolarStudy } from './solar-study.js?v=20261019-eixos';
-import { initMapExplorer } from './map-explorer.js?v=20261019-eixos';
+import { initSolarStudy } from './solar-study.js?v=20261024-planet-lanes';
+import { initMapExplorer } from './map-explorer.js?v=20261024-cabala-clarity';
 import { activeProfile, onProfilesChange } from './profiles.js';
 import { t, locale } from './i18n.js';
+
+const learningWords = cabalaLearningTexts.labels;
 
 const viewport = document.querySelector('#viewport');
 const mount = document.querySelector('#tree-mount');
@@ -21,7 +23,12 @@ const dust = document.querySelector('.stardust');
 const circles = document.querySelector('.tree-worlds');
 const scene = document.querySelector('#orbit-scene');
 let activeViewport = viewport;
-let mode = 'base';
+const TREE_MODE_KEY = 'know-thyself.tree-mode';
+const requestedTree = new URL(location.href).searchParams.get('tree');
+let mode = ['base', 'personal'].includes(requestedTree) ? requestedTree : 'base';
+if (!['base', 'personal'].includes(requestedTree)) {
+  try { if (sessionStorage.getItem(TREE_MODE_KEY) === 'personal') mode = 'personal'; } catch { /* navegação sem armazenamento */ }
+}
 let personalTree = null;
 
 const lineTypes = {
@@ -38,7 +45,7 @@ const lineTypes = {
   empty: { label: t('Sem linhas') },
   blocked: { label: t('Três ou mais linhas') }
 };
-for (const [key, entry] of Object.entries(lineTypes)) entry.description = t(cabalaLineTexts[key][0]);
+for (const [key, entry] of Object.entries(lineTypes)) entry.description = t(cabalaLearningTexts.types[key][0]);
 
 // Amostra do legend: as mesmas contas de luz da árvore, numa linha curta.
 function legendSample(key) {
@@ -104,6 +111,7 @@ previewImage.after(livePreview);
 
 function setMode(nextMode, resetScroll = true) {
   mode = nextMode;
+  try { sessionStorage.setItem(TREE_MODE_KEY, mode); } catch { /* navegação sem armazenamento */ }
   panel.dataset.mode = mode;
   panel.setAttribute('aria-labelledby', `tab-${mode}`);
   document.querySelectorAll('[role="tab"]').forEach(tab => {
@@ -114,11 +122,11 @@ function setMode(nextMode, resetScroll = true) {
   document.querySelector('#tree-title').textContent = mode === 'base' ? t('Árvore da Vida') : t('A sua árvore');
   document.querySelector('#tree-description').innerHTML = mode === 'base'
     ? t('Dez esferas, vinte e dois caminhos.<br>Explore as relações entre eles.')
-    : t('Suas energias e seus caminhos,<br>em uma leitura pessoal da árvore.');
+    : t(learningWords.intro[0]);
   document.querySelector('#base-note').hidden = mode !== 'base';
   document.querySelector('#base-help').hidden = mode !== 'base';
   const person = activeProfile();
-  personalTree = computeTree(person);
+  personalTree = person?.cabala ? computeTree(person) : null;
   const personalAvailable = mode !== 'personal' || Boolean(personalTree);
   if (mode === 'personal' && !personalAvailable) {
     document.querySelector('#tree-description').textContent = person ? person.name : t('Cadastre seus dados de nascimento.');
@@ -126,7 +134,9 @@ function setMode(nextMode, resetScroll = true) {
   document.querySelector('#reading-help').hidden = mode !== 'personal' || !personalAvailable;
   document.querySelector('.tree-figure figcaption').hidden = !personalAvailable;
   circles.hidden = !personalAvailable;
-  mount.innerHTML = personalAvailable ? renderTree(mode, paths, personalTree) : `<div class="map-empty"><p>${person ? t('Sua árvore pessoal ainda não está disponível.') : t('Cadastre uma pessoa para começar.')}</p>${person ? '' : `<a href="./perfil.html">${t('Cadastrar dados de nascimento')}</a>`}</div>`;
+  mount.innerHTML = personalAvailable ? renderTree(mode, paths, personalTree) : person?.cabala
+    ? `<div class="map-empty"><p>${t('Este nome contém letras sem conversão confirmada no alfabeto selecionado.')}</p><a href="./ajustes.html?view=cabala-idioma">${t('Ajustes')}</a></div>`
+    : `<div class="map-empty"><p>${person ? t('Complete seu perfil para gerar sua árvore pessoal.') : t('Cadastre uma pessoa para começar.')}</p><a href="${person ? './perfil.html?cabala=1' : './perfil.html?view=new'}">${person ? t('Editar perfil') : t('Novo perfil')}</a></div>`;
   // Prévia lateral: estática na estrutura base; na pessoal, a mesma árvore calculada, sem IDs duplicados nem alvos de foco.
   const live = mode === 'personal' && personalTree;
   previewImage.style.display = live ? 'none' : '';
@@ -182,18 +192,23 @@ function closeSheet() {
 function orbHTML(sphere) {
   return `<img class="sheet-orb" src="assets/spheres/${sphere.id}.svg" alt="" width="76" height="76">`;
 }
-function sourceHTML(url = sources[0].url) {
-  const source = sources.find(item => item.url === url) || sources[0];
-  return `<p class="source-note">${t('Referência:')} <a href="${source.url}" target="_blank" rel="noreferrer">${source.label}</a>.</p>`;
-}
 function symbolHTML(symbol) {
   const elements = {
     '🜁': '<path d="m10 3 8 14H2Z M5 12h10"/>',
     '🜄': '<path d="m10 17 8-14H2Z"/>',
-    '🜂': '<path d="m10 3 8 14H2Z"/>'
+    '🜂': '<path d="m10 3 8 14H2Z"/>',
+    '⊕': '<circle cx="10" cy="10" r="8"/><path d="M2 10h16M10 2v16"/>'
   };
-  if (!symbol || /^[12]$/.test(symbol)) return '';
-  return `<span class="correspondence-symbol" aria-hidden="true">${elements[symbol] ? `<svg viewBox="0 0 20 20">${elements[symbol]}</svg>` : symbol}</span>`;
+  const assets = {
+    '☉': 'planets/sun', '☽': 'planets/moon', '☿': 'planets/mercury', '♀': 'planets/venus',
+    '♂': 'planets/mars', '♃': 'planets/jupiter', '♄': 'planets/saturn',
+    '♈': 'zodiac/aries', '♉': 'zodiac/taurus', '♊': 'zodiac/gemini', '♋': 'zodiac/cancer',
+    '♌': 'zodiac/leo', '♍': 'zodiac/virgo', '♎': 'zodiac/libra', '♏': 'zodiac/scorpio',
+    '♐': 'zodiac/sagittarius', '♑': 'zodiac/capricorn', '♒': 'zodiac/aquarius', '♓': 'zodiac/pisces'
+  };
+  const icon = elements[symbol] ? `<svg viewBox="0 0 20 20">${elements[symbol]}</svg>`
+    : assets[symbol] ? `<img src="assets/${assets[symbol]}.svg" width="20" height="20" alt="">` : '';
+  return icon ? `<span class="correspondence-symbol" aria-hidden="true">${icon}</span>` : '';
 }
 function showSphere(id, trigger) {
   if (mode === 'personal' && !personalTree) return;
@@ -201,16 +216,16 @@ function showSphere(id, trigger) {
   const study = sphereStudy[id];
   if (!sphere || !study) return;
   if (mode === 'base') {
-    openSheet(`${orbHTML(sphere)}<h2 id="sheet-title">${sphere.name}</h2><p class="sheet-subtitle">${study.meaning} <span class="hebrew-name" lang="he" dir="rtl">${study.hebrew}</span></p><p>${study.description}</p><dl><div><dt>${t('Correspondência')}</dt><dd>${symbolHTML(study.symbol)}${study.correspondence}</dd></div><div><dt>${t('Cor · escala Queen')}</dt><dd>${sphere.queenColor}</dd></div></dl>${sourceHTML()}`, trigger);
+    openSheet(`${orbHTML(sphere)}<h2 id="sheet-title">${sphere.name}</h2><p class="sheet-subtitle">${study.meaning} <span class="hebrew-name" lang="he" dir="rtl">${study.hebrew}</span></p><p>${study.description}</p><dl><div><dt>${t('Correspondência')}</dt><dd>${symbolHTML(study.symbol)}${study.correspondence}</dd></div><div><dt>${t('Cor · escala Queen')}</dt><dd>${sphere.queenColor}</dd></div></dl>`, trigger);
   } else {
     const value = personalTree.values[id];
-    const reading = sphereEnergyReading(id, { value });
+    const reading = sphereEnergyReading(id, { tree: personalTree });
     const connections = sphereConnections(id, personalTree).map(connection => {
       const other = spheres.find(item => item.id === connection.other);
       const labels = connection.types.map(type => lineTypes[type].label).join(' · ');
-      return `<section><h3>${t('Caminho {n} · {from} e {to}', { n: connection.number, from: sphere.name, to: other.name })}</h3><p>${labels}</p><p>${connection.text}</p></section>`;
+      return `<section><h3>${t('Caminho {n} · {from} e {to}', { n: connection.number, from: sphere.name, to: other.name })}</h3><p class="cabala-relationship">${connection.relationshipText}</p>${connection.countText ? `<details class="cabala-calculation"><summary>${t(learningWords.calculation[0])}</summary><p>${labels}</p><p>${connection.countText}</p></details>` : ''}</section>`;
     }).join('');
-    openSheet(`${orbHTML(sphere)}<h2 id="sheet-title">${sphere.name}</h2><p class="sheet-subtitle">${t('Sua energia')} · ${sphere.subtitle} · ${value}</p><h3>${reading.title}</h3>${reading.paragraphs.map(text => `<p>${text}</p>`).join('')}${connections}`, trigger);
+    openSheet(`${orbHTML(sphere)}<h2 id="sheet-title">${sphere.name}</h2><p class="sheet-subtitle">${t('Sua energia')} · ${sphere.subtitle} · ${value}</p><h3>${reading.title}</h3><p>${reading.paragraphs[0]}</p><h3>${t(learningWords.observe[0])}</h3><p>${reading.question}</p><h3>${t(learningWords.connections[0])}</h3>${connections}<details class="cabala-calculation"><summary>${t(learningWords.calculation[0])}</summary><h3>${t(learningWords.count[0], { value })}</h3>${reading.paragraphs.slice(1).map(text => `<p>${text}</p>`).join('')}</details>`, trigger);
   }
 }
 function showPath(number, trigger) {
@@ -221,7 +236,7 @@ function showPath(number, trigger) {
   const to = spheres.find(sphere => sphere.id === path.to).name;
   if (mode === 'base') {
     const attribution = path.attribution || '';
-    openSheet(`<span class="path-letter" lang="he">${path.letter}</span><h2 id="sheet-title">${t('Caminho {n}', { n: path.number })}</h2><p class="sheet-subtitle">${from} <span aria-hidden="true">↔</span> ${to}</p><p>${path.description}</p><dl><div><dt>${t('Letra hebraica')}</dt><dd><span lang="he">${path.letter}</span> · ${path.letterName}</dd></div><div><dt>${t('Correspondência')}</dt><dd>${symbolHTML(path.symbol)}${attribution}</dd></div><div><dt>${t('Carta do Tarô (Thoth)')}</dt><dd>${path.thoth}</dd></div></dl>${sourceHTML(path.source)}`, trigger);
+    openSheet(`<span class="path-letter" lang="he">${path.letter}</span><h2 id="sheet-title">${t('Caminho {n}', { n: path.number })}</h2><p class="sheet-subtitle">${from} <span aria-hidden="true">↔</span> ${to}</p><p>${path.description}</p><dl><div><dt>${t('Letra hebraica')}</dt><dd><span lang="he">${path.letter}</span> · ${path.letterName}</dd></div><div><dt>${t('Correspondência')}</dt><dd>${symbolHTML(path.symbol)}${attribution}</dd></div><div><dt>${t('Carta do Tarô (Thoth)')}</dt><dd>${path.thoth}</dd></div></dl>`, trigger);
   } else {
     const reading = personalPathReading(path);
     if (!reading) return;
@@ -235,7 +250,7 @@ function showPath(number, trigger) {
       return `<p class="path-cycle">${text}</p>`;
     }).join('');
     const cycleNote = cycles ? `<p>${t('Essas datas situam etapas simbólicas do ciclo, sem prever acontecimentos.')}</p>` : '';
-    openSheet(`<span class="personal-path-number">${path.number}</span><h2 id="sheet-title">${t('Seu caminho {n}', { n: path.number })}</h2><p class="sheet-subtitle">${from} <span aria-hidden="true">↔</span> ${to}</p><p>${reading.text}</p><div class="path-reading">${descriptions.map(entry => `<div class="path-reading-item">${legendRow(entry)}<p>${entry[1].description}</p></div>`).join('')}</div>${cycles}${cycleNote}`, trigger);
+    openSheet(`<span class="personal-path-number">${path.number}</span><h2 id="sheet-title">${t('Seu caminho {n}', { n: path.number })}</h2><p class="sheet-subtitle">${from} <span aria-hidden="true">↔</span> ${to}</p><p class="cabala-relationship">${reading.relationshipText}</p><div class="path-reading">${descriptions.map(entry => `<div class="path-reading-item">${legendRow(entry)}<p>${entry[1].description}</p></div>`).join('')}</div>${reading.countText ? `<details class="cabala-calculation"><summary>${t(learningWords.calculation[0])}</summary><p>${reading.countText}</p></details>` : ''}${cycles}${cycleNote}<h3>${t(learningWords.observe[0])}</h3><p>${reading.question}</p>`, trigger);
   }
 }
 function activateTreeItem(target) {
@@ -244,7 +259,19 @@ function activateTreeItem(target) {
   const path = target.closest('.path-node');
   if (path) showPath(Number(path.dataset.path), path);
 }
-mount.addEventListener('click', event => activateTreeItem(event.target));
+mount.addEventListener('click', event => {
+  let target = event.target;
+  if (event.detail && target.closest('.path-node')) {
+    // Alvos de44px se sobrepõem na árvore estreita: o marcador mais próximo decide, não a ordem do SVG.
+    let nearest = 22;
+    for (const marker of mount.querySelectorAll('.path-marker-hit')) {
+      const point = marker.getPointAtLength(0).matrixTransform(marker.getScreenCTM());
+      const distance = Math.hypot(point.x - event.clientX, point.y - event.clientY);
+      if (distance < nearest) { nearest = distance; target = marker; }
+    }
+  }
+  activateTreeItem(target);
+});
 mount.addEventListener('keydown', event => {
   if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); activateTreeItem(event.target); }
 });
@@ -254,14 +281,14 @@ document.addEventListener('keydown', event => {
   if (sheet.hidden) return;
   if (event.key === 'Escape') closeSheet();
   if (event.key === 'Tab') {
-    const focusable = [...sheet.querySelectorAll('button:not([disabled]),a[href],select:not([disabled]),input:not([disabled]),[tabindex="0"]')];
+    const focusable = [...sheet.querySelectorAll('button:not([disabled]),a[href],select:not([disabled]),input:not([disabled]),summary,[tabindex="0"]')];
     const first = focusable[0];
     const last = focusable.at(-1);
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 });
-setMode('base', false);
+setMode(mode, false);
 onProfilesChange(() => {
   setMode(mode, false);
   if (!sheet.hidden && mode === 'personal') closeSheet();

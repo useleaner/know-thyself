@@ -1,5 +1,7 @@
 import { t, lang } from './i18n.js';
+import { notificationLink, pendingNotification, clearPendingNotification } from './notification-link.js';
 const messages = {
+  accounts_unavailable: t('Não foi possível salvar sua conta. Tente entrar novamente em instantes.'),
   not_configured: t('Não foi possível entrar com o Google agora. Tente novamente em instantes.'),
   access_denied: t('A entrada foi cancelada ou esta conta não tem acesso. Tente novamente.'),
   invalid_state: t('O tempo para entrar terminou. Tente novamente.'),
@@ -7,6 +9,7 @@ const messages = {
   google_unavailable: t('Não foi possível conectar ao Google. Tente novamente em instantes.')
 };
 const emailMessages = {
+  accounts_unavailable: messages.accounts_unavailable,
   invalid_email: t('Confira o e-mail digitado.'),
   access_denied: t('Este e-mail não tem acesso.'),
   email_unavailable: t('Não foi possível enviar o código agora. Tente novamente em instantes.'),
@@ -24,7 +27,8 @@ async function post(request, action, body) {
 
 export async function readSession(request = fetch) {
   const response = await request('/api/auth?action=session', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(10000) });
-  return response.ok ? response.json() : null;
+  if (!response.ok) throw new Error(t('Não foi possível verificar seu acesso. Confira a conexão e tente novamente.'));
+  return response.json();
 }
 
 export const isLocalPreview = pageURL => ['http://127.0.0.1:4173', 'http://localhost:4173', 'http://[::1]:4173'].includes(new URL(pageURL).origin);
@@ -72,6 +76,13 @@ export function leaveSplash(root = document, exit = 'reveal') {
 }
 
 export async function initLogin({ root = document, request = fetch, navigate = url => location.assign(url), pageURL = location.href, history = globalThis.history, loadGoogle = loadGoogleIdentity, viewport = globalThis.visualViewport } = {}) {
+  const returnQuery = new URL(pageURL).searchParams;
+  const returnPage = new URL(returnQuery.get('return') === 'profile' ? './perfil.html' : './universo.html', pageURL);
+  if (returnQuery.get('return') === 'profile') {
+    if (['natal', 'transits', 'synastry', 'synastry-transits'].includes(returnQuery.get('mode'))) returnPage.searchParams.set('mode', returnQuery.get('mode'));
+    if (returnQuery.get('compare') === '1') returnPage.searchParams.set('compare', '1');
+  }
+  const destination = pendingNotification(pageURL)?.url || returnPage.pathname + returnPage.search;
   if (viewport) {
     const device = root.querySelector('#login-screen').parentElement;
     const fitViewport = () => device.style.setProperty('--login-height', `${Math.round(viewport.height)}px`);
@@ -161,7 +172,7 @@ export async function initLogin({ root = document, request = fetch, navigate = u
     try {
       await post(request, 'email-verify', { code: codeInput.value });
       status.textContent = t('Entrando…');
-      navigate(new URL('./universo.html', pageURL).pathname);
+      navigate(destination);
       return;
     } catch (failure) {
       status.textContent = emailMessages[failure.message] || emailMessages.email_unavailable;
@@ -199,7 +210,7 @@ export async function initLogin({ root = document, request = fetch, navigate = u
     const session = isLocalPreview(pageURL) ? null : await readSession(request);
     configured = session?.configured === true;
     if (session?.vercel || (configured && session.user)) {
-      navigate(new URL('./universo.html', pageURL).pathname);
+      navigate(destination);
       return;
     }
     leaveSplash(root, 'morph');
@@ -209,14 +220,14 @@ export async function initLogin({ root = document, request = fetch, navigate = u
         googleClient = google.initCodeClient({
           client_id: session.clientId, scope: 'openid email profile', ux_mode: 'popup', select_account: true,
           callback: async result => {
-            if (!consent.checked) { googleFailure(t('Aceite os Termos e a Política de Privacidade para continuar.')); return; }
+            if (!consent.checked) { googleFailure(t('Concorde com os Termos de Uso, reconheça a Política de Privacidade e confirme que tem pelo menos 18 anos para continuar.')); return; }
             if (result.error || !result.code) { googleFailure(messages.access_denied); return; }
             status.textContent = t('Entrando…');
             try {
               await post(request, 'google-exchange', { code: result.code });
               const confirmed = await readSession(request);
               if (!confirmed?.user) throw new Error('google_unavailable');
-              navigate(new URL('./universo.html', pageURL).pathname);
+              navigate(destination);
             } catch (failure) {
               googleFailure(messages[failure.message] || messages.google_unavailable);
             }
@@ -234,7 +245,7 @@ export async function initLogin({ root = document, request = fetch, navigate = u
   button.disabled = false;
 }
 
-export function initLogout({ root = document, request = fetch, navigate = url => location.assign(url), pageURL = location.href } = {}) {
+export function initLogout({ root = document, request = fetch, navigate = url => location.assign(url), pageURL = location.href, serviceWorker = globalThis.navigator?.serviceWorker } = {}) {
   const loginPath = new URL('./', pageURL).pathname;
   root.addEventListener('click', async event => {
     const logout = event.target.closest('[data-auth-logout]');
@@ -243,17 +254,30 @@ export function initLogout({ root = document, request = fetch, navigate = url =>
     logout.disabled = true;
     if (accountStatus) accountStatus.textContent = t('Saindo da conta…');
     try {
+      try {
+        const registration = await serviceWorker?.getRegistration();
+        const subscription = await registration?.pushManager.getSubscription();
+        if (subscription) {
+          const removed = await request('/api/notifications', { method: 'DELETE', credentials: 'same-origin', signal: AbortSignal.timeout(5000), headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XmlHttpRequest' }, body: JSON.stringify({ endpoint: subscription.endpoint }) }).then(response => response.ok, () => false);
+          const unsubscribed = await subscription.unsubscribe().catch(() => false);
+          if (!removed && !unsubscribed) throw new Error('notification_revoke');
+        }
+      } catch { throw new Error('notification_revoke'); }
       const response = await request('/api/auth?action=logout', { method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(10000) });
       if (!response.ok) throw new Error('logout');
       navigate(loginPath);
-    } catch {
+    } catch (error) {
       logout.disabled = false;
-      if (accountStatus) accountStatus.textContent = t('Não foi possível sair. Confira a conexão e tente novamente.');
+      if (accountStatus) accountStatus.textContent = error.message === 'notification_revoke'
+        ? t('Não foi possível desativar as notificações neste aparelho. Confira a conexão e tente sair novamente.')
+        : t('Não foi possível sair. Confira a conexão e tente novamente.');
     }
   });
 }
 
-export async function initApp({ root = document, request = fetch, navigate = url => location.assign(url), loadApp = () => import('./app.js?v=20261020-ciclos'), pageURL = location.href } = {}) {
+export async function initApp({ root = document, storage = globalThis.localStorage, request = fetch, navigate = url => location.assign(url), loadApp = () => import('./app.js?v=20261024-planet-lanes'), pageURL = location.href } = {}) {
+  const notification = notificationLink(pageURL, pageURL), pending = pendingNotification(pageURL);
+  if (!notification && pending) { navigate(pending.url); return; }
   const content = root.querySelector('#app-content');
   const status = root.querySelector('#auth-status');
   const loginPath = new URL('./', pageURL).pathname;
@@ -265,7 +289,14 @@ export async function initApp({ root = document, request = fetch, navigate = url
       navigate(loginPath);
       return;
     }
-    if (session?.user) await import('./profiles.js').then(profiles => profiles.connectProfiles({ request })).catch(() => {});
+    if (notification) clearPendingNotification();
+    if (session?.user) await import('./profiles.js').then(profiles => profiles.connectProfiles({ storage, request }));
+    if (notification) {
+      const profiles = await import('./profiles.js');
+      const person = profiles.readProfiles(globalThis.localStorage).find(profile => profile.id === notification.profile);
+      if (!person) throw new Error('notification_profile_missing');
+      if (profiles.activeProfile()?.id !== person.id) await profiles.setActive(person.id);
+    }
     content.hidden = false;
     content.inert = false;
     // O app 3D ocupa a thread principal ao montar; esperar a abertura evita travar o desenho do splash.
@@ -278,10 +309,23 @@ export async function initApp({ root = document, request = fetch, navigate = url
     if (frame) for (let i = 0; i < 3; i++) await new Promise(resolve => frame(resolve));
     leaveSplash(root);
     root.querySelector('#profile-button').focus({ preventScroll: true, focusVisible: false });
-  } catch {
+  } catch (error) {
     content.hidden = true;
     content.inert = true;
-    status.textContent = t('Não foi possível abrir o app. Confira a conexão e recarregue a página.');
+    status.textContent = error.code === 'session_expired' ? error.message : error.message === 'notification_profile_missing'
+      ? t('A pessoa desta leitura não está mais na sua conta.')
+      : t('Não foi possível abrir o app. Confira a conexão e recarregue a página.');
+    if (error.message === 'notification_profile_missing') {
+      const link = root.createElement('a');
+      link.href = './universo.html'; link.textContent = t('Abrir meu mapa');
+      status.append(' ', link);
+    }
+    if (root.createElement) {
+      const retry = root.createElement('button');
+      retry.type = 'button'; retry.className = 'profile-action'; retry.textContent = t(error.code === 'session_expired' ? 'Entrar novamente' : 'Tentar novamente');
+      retry.addEventListener('click', () => navigate(error.code === 'session_expired' ? loginPath : pageURL));
+      status.append(' ', retry);
+    }
     leaveSplash(root);
   }
 }

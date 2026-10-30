@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildMapState, SIGN_NAMES, formatDegree } from './map-data.js';
-import { renderPanelBody, renderWheel, renderProfileHeader, calendarDays, renderCalendarDays, renderBalanceReading, shareText, escapeHTML } from './map-readings.js';
+import { spawnSync } from 'node:child_process';
+import { buildMapState, SIGN_NAMES, formatDegree, findAspect } from './map-data.js';
+import { renderPanelBody, renderWheel, renderProfileHeader, calendarDays, renderCalendarDays, renderBalanceReading, renderDayAspect, shareText, escapeHTML } from './map-readings.js';
+import { renderMapReading } from './map-explorer.js';
 import { natalSynthesis } from './natal-readings.js';
 import { natalBalanceTexts, natalBalanceEvenTexts } from './natal-catalog.js';
 import { balance as externalBalanceTexts } from './interpretations.js';
@@ -22,7 +24,7 @@ test('panel body: transit modes show the day aspect, contextual balance texts an
   const html = renderPanelBody(state);
   assert.match(html, /Aspecto do dia/);
   assert.match(html, /Orbe: \d+,\d\d° (aproximando|afastando)/);
-  assert.match(html, /Neste trânsito/);
+  assert.match(html, /referência natal fixa/);
   assert.match(html, /Elementos, qualidades e dualidades/);
   assert.ok(state.balance.notes.length > 0);
   for (const note of state.balance.notes) assert.ok(html.includes(escapeHTML(externalBalanceTexts[note.key][note.kind])));
@@ -53,6 +55,57 @@ test('panel body: natal positions and synthesis use calculated facts; synastry s
   }
   const alone = renderPanelBody(buildMapState({ profile, mode: 'synastry', date: day }));
   assert.match(alone, /class="panel-notice">Escolha a pessoa para comparar no perfil do topo\.<\/p>/);
+});
+
+test('combined mode day-aspect button opens the matching transit reading', () => {
+  const partner = { ...profile, name: 'Perfil sintético B', birthDate: '1984-12-05', birthTime: '19:41', lat: 51.5, lon: -.12, timezone: 'Europe/London' };
+  const state = buildMapState({ profile, partner, mode: 'synastry-transits', date: day });
+  const html = renderDayAspect(state);
+  const id = html.match(/data-map-aspect="([^"]+)"/)[1];
+  assert.equal(findAspect(state, id), state.dayAspect);
+  const reading = renderMapReading({ kind: 'aspect', id }, state);
+  assert.ok(reading, 'the rendered button must resolve to a reading');
+  assert.ok(reading.includes(`data-map-body="${state.dayAspect.from}"`));
+  assert.ok(reading.includes(`data-map-body="${state.dayAspect.to}"`));
+  assert.match(reading, /em trânsito/);
+  assert.ok(state.aspects.every(aspect => aspect.from.startsWith('partner-')));
+});
+
+test('partner polar warning identifies the partner and escapes user text', () => {
+  const partner = { ...profile, name: 'Noa <b>', birthDate: '1994-06-21', birthTime: '12:00', lat: 78.2232, lon: 15.6469, timezone: 'Arctic/Longyearbyen' };
+  const state = buildMapState({ profile, partner, mode: 'synastry', date: day, houseSystem: 'placidus' });
+  const html = renderPanelBody(state);
+  assert.ok(html.includes(`<p class="panel-notice" role="status">Mapa de Noa &lt;b&gt;: ${escapeHTML(state.partnerWarning)}</p>`));
+  assert.match(html, /Placidus.*casas iguais/);
+  assert.doesNotMatch(html, /Noa <b>/);
+  const bothPolar = buildMapState({ profile: { ...partner, name: 'Perfil sintético A' }, partner, mode: 'synastry', date: day, houseSystem: 'placidus' });
+  const bothHtml = renderPanelBody(bothPolar);
+  assert.ok(bothHtml.includes(escapeHTML(bothPolar.warning)), 'principal warning remains visible too');
+  assert.equal((bothHtml.match(/class="panel-notice" role="status"/g) || []).length, 2);
+});
+
+test('real English load opens the combined day reading and attributes the polar warning', () => {
+  const code = `globalThis.localStorage = { getItem: () => 'en' };
+    const assert = (await import('node:assert/strict')).default;
+    const { buildMapState, findAspect } = await import('./map-data.js');
+    const { renderDayAspect, renderPanelBody } = await import('./map-readings.js');
+    const { renderMapReading } = await import('./map-explorer.js');
+    const profile = ${JSON.stringify(profile)};
+    const partner = { ...profile, name: 'Noa <b>', birthDate: '1994-06-21', birthTime: '12:00', lat: 78.2232, lon: 15.6469, timezone: 'Arctic/Longyearbyen' };
+    const state = buildMapState({ profile, partner, mode: 'synastry-transits', date: new Date('${day.toISOString()}'), houseSystem: 'placidus' });
+    const id = renderDayAspect(state).match(/data-map-aspect="([^"]+)"/)[1];
+    assert.equal(findAspect(state, id), state.dayAspect);
+    const reading = renderMapReading({ kind: 'aspect', id }, state);
+    assert.ok(reading.includes('data-map-body="' + state.dayAspect.from + '"'));
+    assert.ok(reading.includes('data-map-body="' + state.dayAspect.to + '"'));
+    const html = renderPanelBody(state);
+    assert.ok(html.includes('Chart for Noa &lt;b&gt;: Placidus'));
+    assert.ok(html.includes('equal houses are used'));
+    assert.ok(!html.includes('Noa <b>'));
+    assert.equal(state.houseSystem, 'placidus');
+    assert.equal(state.partnerChart.houseSystem, 'equal');`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: new URL('.', import.meta.url), encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
 });
 
 test('wheels: segment lengths follow counts, accessible labels name every category and natal texts match the distribution', () => {

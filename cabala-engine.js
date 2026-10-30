@@ -1,10 +1,9 @@
 // Árvore pessoal pelo método Villarrubia/Haut/Millera, *Manual de Kabbalah Práctica — Séfer ha-Neshamah*,
-// Parte III (blocos, famílias de números, ocultos e tipos de linha). Conferido contra a árvore de referência
-// do app Kabbalah (caso de referência privado): os 22 caminhos, tipos de linha, karma e dons coincidem.
+// Parte III (blocos, famílias de números, ocultos e tipos de linha), com dados explícitos e idioma escolhido.
 import { personalPaths } from './tree.js';
+import { cabalaAlphabetFor, normalizeCabala } from './cabala-input.js';
 
-// Português anterior ao Acordo de 2009 (23 letras): é a tabela que reproduz a referência
-// no caso de referência e no caso fictício Alba Silva Costa. Depois de 2009, 26 letras, como no alfabeto internacional.
+// Parser/tabelas legados só para fixtures históricas; remover quando as auditorias deixarem de depender deles.
 const PT23 = ['ABCDEFGHI', 'JLMNOPQRS', 'TUVXZ'];
 const INTL = ['ABCDEFGHI', 'JKLMNOPQR', 'STUVWXYZ'];
 const PARTICLES = new Set(['da', 'das', 'de', 'do', 'dos', 'e', 'y', 'del', 'di', 'van', 'von']);
@@ -26,7 +25,7 @@ const letters = text => text.normalize('NFD').replace(/\p{M}/gu, '').toUpperCase
 
 // Agrupa o nome civil: partículas vão com o sobrenome seguinte, Junior/Filho/Neto com o anterior.
 // No Brasil o sobrenome materno vem antes do paterno; o último grupo é o paterno.
-// ponytail: primeiro grupo = prenome; nomes compostos ("João Pedro") viram prenome + sobrenome materno.
+// Primeiro grupo = prenome; nomes compostos ("João Pedro") viram prenome + sobrenome materno.
 export function splitName(fullName = '') {
   const groups = [];
   let pending = [];
@@ -46,14 +45,15 @@ export function alphabetFor(birthDate) {
 }
 
 // Blocos 1–3: soma simples; oculto pela soma com multiplicadores ×1/×10/×100 (seção 6.2.H).
-export function nameBlock(text, table) {
+export function nameBlock(text, table, legacyFallback = false) {
   const word = letters(text);
   if (!word) return block();
-  // ponytail: K, W e Y não existem no português de 23 letras; o nome inteiro passa à tabela de 26.
-  if (table === PT23 && /[KWY]/.test(word)) table = INTL;
+  // K, W e Y não existem no português de 23 letras; o nome inteiro passa à tabela de 26.
+  if (legacyFallback && table === PT23 && /[KWY]/.test(word)) table = INTL;
   let simple = 0, weighted = 0;
   for (const char of word) {
     const row = table.findIndex(line => line.includes(char));
+    if (row < 0) throw new Error('Unsupported letter in Cabala alphabet');
     const value = table[row].indexOf(char) + 1;
     simple += value;
     weighted += value * 10 ** row;
@@ -67,7 +67,7 @@ export function nameBlock(text, table) {
 // Ocultos só entram depois das combinações visíveis; em A, B e C valem como linhas comuns.
 function combine(sources, { hidden = true, hiddenAsVisible = false } = {}) {
   const present = sources.filter(source => !isEmpty(source));
-  // ponytail: o livro não trata bloco ausente (pessoa sem sobrenome materno); ignorado na soma, e sem fonte suficiente o bloco fica vazio.
+  // O livro não trata bloco ausente (pessoa sem sobrenome materno); ignorado na soma, e sem fonte suficiente o bloco fica vazio.
   if (present.length < 2) return block();
   const sums = pick => present.reduce((acc, source) => acc.flatMap(total => pick(source).map(n => total + n)), [0]);
   const visible = unique(sums(source => source.visible).flatMap(total => chain(reduce22(total))));
@@ -76,14 +76,20 @@ function combine(sources, { hidden = true, hiddenAsVisible = false } = {}) {
   return hiddenAsVisible ? block([...visible, ...extra]) : block(visible, extra);
 }
 
-export function computeBlocks({ name, birthDate }) {
+export function computeBlocks({ name, birthDate, cabala }) {
   const [year, month, day] = String(birthDate).split('-').map(Number);
-  const table = alphabetFor(birthDate);
-  const { first, paternal, maternal } = splitName(name);
+  const explicit = normalizeCabala(cabala, birthDate);
+  const table = explicit ? cabalaAlphabetFor(explicit.language, birthDate) : alphabetFor(birthDate);
+  // pp. 442–443: preservar a ordem declarada dos sobrenomes nos blocos 2/3.
+  const { first, paternal, maternal } = explicit ? {
+    first: explicit.firstNames,
+    paternal: explicit.order === 'paternal-first' ? explicit.paternalSurname : explicit.maternalSurname,
+    maternal: explicit.order === 'paternal-first' ? explicit.maternalSurname : explicit.paternalSurname
+  } : splitName(name);
   const b = {};
-  b[1] = nameBlock(first, table);
-  b[2] = nameBlock(paternal, table);
-  b[3] = nameBlock(maternal, table);
+  b[1] = nameBlock(first, table, !explicit);
+  b[2] = nameBlock(paternal, table, !explicit);
+  b[3] = nameBlock(maternal, table, !explicit);
   b[4] = block(unique(chain(reduce22(day))));
   b[5] = block(unique(chain(month)));
   b[6] = block(unique(chain(reduce22(digitSum(year)))));
@@ -104,8 +110,13 @@ export function computeBlocks({ name, birthDate }) {
 const LINE = { 10: ['primary', 'primary-hidden'], 11: ['secondary', 'secondary-hidden'], 12: ['short-crisis'], 13: ['long-crisis'] };
 
 export function computeTree(profile) {
-  if (!profile?.name || !/^\d{4}-\d{2}-\d{2}$/.test(profile.birthDate || '')) return null;
-  const b = computeBlocks(profile);
+  const date = profile?.birthDate;
+  if ((!profile?.name && !profile?.cabala) || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || date.startsWith('0000-')) return null;
+  const birth = new Date(`${date}T00:00:00.000Z`);
+  if (!Number.isFinite(birth.getTime()) || birth.toISOString().slice(0, 10) !== date) return null;
+  let b;
+  try { b = computeBlocks(profile); } catch { return null; }
+  if (!b[1].visible.length) return null;
   const lines = Object.fromEntries(personalPaths.map(path => [path.number, []]));
   for (let k = 1; k <= 13; k++) {
     const [visibleType, hiddenType] = LINE[k] || ['standard', 'hidden'];
@@ -125,7 +136,7 @@ export function computeTree(profile) {
 // Seções 9–10: linhas dos blocos 12 e 13 oscilam num ciclo (curto: dia + mês, em meses; longo: mês + dígitos do ano, em anos).
 // Sozinha no caminho, a linha zera na metade e no fim do ciclo (crise); com uma fixa, zera no mínimo (3/4);
 // com duas ou mais fixas, passa de 2 no máximo (1/4) e o caminho sobrecarrega (anticrise).
-// ponytail: duas linhas variáveis no mesmo caminho são tratadas em separado, sem o ciclo combinado das figuras 40–43.
+// Duas linhas variáveis no mesmo caminho são tratadas em separado, sem o ciclo combinado das figuras 40–43.
 const MONTH_MS = 365.2425 / 12 * 864e5;
 export function pathCycles(profile, tree, now = new Date()) {
   const [year, month, day] = String(profile?.birthDate).split('-').map(Number);

@@ -1,9 +1,6 @@
-// Authorial reflections; only three exact cases were observed in the supplied personal tree.
+// Observed source prose is preserved below; runtime teaching uses only the current tree.
 import { t } from './i18n.js';
-import { cabalaSphereTexts } from './cabala-sphere-texts.js';
-const reflections = Object.fromEntries(Object.entries(cabalaSphereTexts).map(([id, item]) => [id, {
-  title: t(item.title[0]), paragraphs: item.personal.map(pair => t(pair[0]))
-}]));
+import { cabalaLearningTexts } from './cabala-learning-texts.js';
 
 // These readings describe the observed case, not numerical thresholds or a birth-data calculation.
 export const observedSphereReadings = {
@@ -34,6 +31,17 @@ export const observedSphereReadings = {
 };
 
 // As três leituras observadas são fonte preservada, nunca selecionadas por valor ou ID declarado pelo chamador.
-export function sphereEnergyReading(id) {
-  return reflections[id] || null;
+export function sphereEnergyReading(id, { tree } = {}) {
+  const meaning = cabalaLearningTexts.spheres[id];
+  if (!meaning || !tree) return null;
+  const paths = tree.paths.filter(path => path.from === id || path.to === id);
+  const samples = paths.flatMap(path => path.samples);
+  const karma = samples.filter(sample => sample.type === 'karma').length;
+  const lines = samples.length - karma;
+  const words = cabalaLearningTexts.labels;
+  return {
+    title: t(words.meaning[0]), value: `${lines}/${paths.length}`, lines, paths: paths.length, karma,
+    paragraphs: [t(meaning[0]), t(words.sphereCount[0], { lines, paths: paths.length }), ...(karma ? [t(words.excluded[0], { karma })] : [])],
+    question: t(words.sphereQuestion[0])
+  };
 }

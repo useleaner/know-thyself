@@ -4,9 +4,11 @@
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "test": "node --test *.test.mjs",
-    "db:migrate": "node --env-file=.env.local scripts/migrate.cjs"
+    "db:migrate": "node --env-file=.env.local scripts/migrate.cjs",
+    "db:migrate:users": "node --env-file=.env.local scripts/migrate.cjs users"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.1.0"
+    "@neondatabase/serverless": "^1.1.0",
+    "web-push": "^3.6.7"
   }
 }

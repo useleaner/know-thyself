@@ -14,7 +14,7 @@ export const spheres = [
 ];
 
 
-// Contas de luz do board Caminhos: cada tipo de linha tem halo e núcleo; "gap" é o espaço entre contas, `dim` apaga o halo (linhas ocultas).
+// Contas de luz: cada tipo de linha tem halo e núcleo; "gap" é o espaço entre contas, `dim` apaga o halo (linhas ocultas).
 export const beadStyles = {
   standard: { halo: '#e9dcc8', core: '#fffaf0', gap: 14 },
   hidden: { core: '#fffaf0', gap: 14, dim: true },
@@ -86,8 +86,8 @@ function pathNode(path, personal) {
   const y = slot?.y ?? (from.y + to.y) / 2;
   const { number } = path;
   const d = geometry(path);
-  const markerSize = personal ? 34.4 : 48;
-  const focusRadius = personal ? 20 : 25;
+  const markerSize = 41.2;
+  const focusRadius = 22.5;
   const samples = personal ? path.samples : [{ halo: path.color || '#a6aedf' }];
   const label = personal ? t(path.gift ? 'Seu caminho {n}, dom' : 'Seu caminho {n}', { n: number }) : `${t('Caminho {n}', { n: number })}, ${path.letterName || ''}, ${path.attribution || ''}`;
   const guide = `<path d="${d}" fill="none" stroke="#fff" stroke-opacity="${samples.length ? '.14' : '.18'}" stroke-width="1.2"/>`;

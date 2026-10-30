@@ -9,7 +9,7 @@ export const sources = [
 ];
 
 export const sphereStudy = {
-  kether: { meaning: t('Coroa'), hebrew: 'כתר', correspondence: t('Primum Mobile · primeiro movimento'), symbol: '1', description: t(cabalaSphereTexts.kether.study[0]) },
+  kether: { meaning: t('Coroa'), hebrew: 'כתר', correspondence: t('Primeiro Móvel · a esfera que move os demais céus'), symbol: '1', description: t(cabalaSphereTexts.kether.study[0]) },
   chokmah: { meaning: t('Sabedoria'), hebrew: 'חכמה', correspondence: t('Mazloth · Zodíaco e céu estrelado'), symbol: '2', description: t(cabalaSphereTexts.chokmah.study[0]) },
   binah: { meaning: t('Entendimento'), hebrew: 'בינה', correspondence: t('Saturno'), symbol: '♄', description: t(cabalaSphereTexts.binah.study[0]) },
   chesed: { meaning: t('Misericórdia'), hebrew: 'חסד', correspondence: t('Júpiter'), symbol: '♃', description: t(cabalaSphereTexts.chesed.study[0]) },

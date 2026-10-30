@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#080d23">
   <title>Ajustes — Know Thyself</title>
   <link rel="stylesheet" href="style.css?v=20261020-veu4">
-  <link rel="stylesheet" href="ajustes.css?v=20261020-veu4">
+  <link rel="stylesheet" href="ajustes.css?v=20261021-notifications">
 </head>
 <body class="settings-body">
   <div class="atmosphere" aria-hidden="true"><div class="nebula nebula-far"></div><div class="nebula nebula-near"></div></div>
@@ -55,6 +55,30 @@
       </li>
     </ul>
     <ul class="settings-group">
+      <li class="settings-item" data-section="notificacoes">
+        <button class="settings-row settings-toggle" type="button" id="toggle-notificacoes" aria-expanded="false" aria-controls="panel-notificacoes"><svg class="settings-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5Zm5 3h4"/></svg><span class="settings-label">Leitura diária</span><span class="settings-value" id="notification-value">Desativada</span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="settings-panel" id="panel-notificacoes" role="region" aria-labelledby="toggle-notificacoes" hidden>
+          <p class="settings-copy">Uma leitura de trânsito por dia, no horário que você escolher.</p>
+          <form id="notification-form" aria-busy="true">
+            <label class="settings-row switch-row"><span class="settings-label">Receber neste aparelho</span><input id="notification-enabled" type="checkbox" role="switch" disabled><span class="settings-switch" aria-hidden="true"></span></label>
+            <label class="settings-row"><span class="settings-label">Pessoa</span><select id="notification-profile" required disabled></select></label>
+            <label class="settings-row"><span class="settings-label">Horário</span><input id="notification-time" type="time" value="08:00" required disabled></label>
+            <p class="settings-note" id="notification-zone"></p>
+            <button class="notification-save" id="notification-save" type="submit" hidden>Salvar horário</button>
+          </form>
+          <p class="settings-note" id="notification-status" role="status" aria-live="polite"></p>
+        </div>
+      </li>
+      <li class="settings-item" data-section="cabala-idioma">
+        <button class="settings-row settings-toggle" type="button" id="toggle-cabala-idioma" aria-expanded="false" aria-controls="panel-cabala-idioma"><svg class="settings-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 16 12 7l4 9M9 13h6"/></svg><span class="settings-label">Idioma do nome</span><span class="settings-value" id="cabala-language-value"></span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="settings-panel" id="panel-cabala-idioma" role="region" aria-labelledby="toggle-cabala-idioma" hidden>
+          <p class="settings-note" id="cabala-language-profile"></p>
+          <fieldset class="settings-options"><legend class="sr-only">Idioma do nome</legend>
+            <label class="settings-option" lang="pt-BR"><input type="radio" name="cabalaLanguage" value="pt"><span class="option-copy" translate="no">Português</span><svg class="settings-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></label>
+            <label class="settings-option" lang="en"><input type="radio" name="cabalaLanguage" value="en"><span class="option-copy" translate="no">English</span><svg class="settings-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></label>
+          </fieldset>
+        </div>
+      </li>
       <li class="settings-item" data-section="idioma">
         <button class="settings-row settings-toggle" type="button" id="toggle-idioma" aria-expanded="false" aria-controls="panel-idioma"><svg class="settings-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg><span class="settings-label">Idioma</span><span class="settings-value" id="language-value"></span><svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="settings-panel" id="panel-idioma" role="region" aria-labelledby="toggle-idioma" hidden>
@@ -65,10 +89,13 @@
         </div>
       </li>
     </ul>
+    <a class="settings-row" href="conta.html">Minha conta</a>
+    <a class="settings-row" href="ajuda.html">Ajuda e instalação</a>
     <p id="status" role="status" aria-live="polite"></p>
     <noscript>Ative o JavaScript para acessar os ajustes.</noscript>
   </main>
-  <script type="module" src="ajustes.js?v=20261019-hub"></script>
+  <script type="module" src="ajustes.js?v=20261023-nome-ajustes"></script>
   <script type="module" src="login.js?v=20261019-caminhos"></script>
+  <script type="module" src="pwa.js"></script>
 </body>
 </html>

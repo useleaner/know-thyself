@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from './vendor/three.module.js';
 import { ascendant, natalPlacements } from './sample-chart.js';
-import { mapAspects, emptySceneData } from './map-data.js';
+import { mapAspects, emptySceneData, fixtureSceneData } from './map-data.js';
 import { buildSolarScene, fitSolarDiscLabels, pickSolarTarget, projectSolarDiscLabels, setSolarView, setSolarViewport, solarGestureView, solarInteractionRect } from './solar-study.js';
 
 test('empty account retains the disc without planets, aspects or personal positions', () => {
@@ -14,13 +14,64 @@ test('empty account retains the disc without planets, aspects or personal positi
   assert.equal(model.degreeMarkers.length, 0);
   assert.equal(model.outerGuides.length, 0);
   assert.equal(model.saturnRing.visible, false);
-  assert.equal(model.orbitalRings.length, 7);
+  assert.equal(model.orbitalRings.length, 10);
   assert.equal(model.discLabels.length, 24);
   assert.ok(model.discLabels.every(label => ['sign', 'house'].includes(label.kind)));
   assert.equal(pickSolarTarget(model, 0, 0), null);
 });
 
-test('eleven natal spheres preserve the original orbit radii, heights, sizes and seven rings', () => {
+test('ASC, DSC, MC and IC retain their rays and labels without planet-like endpoint spheres', () => {
+  const data = fixtureSceneData();
+  data.mc = 270;
+  const model = buildSolarScene({ data });
+  const labels = model.discLabels.filter(label => label.kind === 'angle');
+  assert.deepEqual(labels.map(label => label.bodyId), ['asc', 'dsc', 'mc', 'ic']);
+  assert.equal(model.angleAxes.children.filter(item => item.isLineSegments).length, 3);
+  assert.equal(model.angleAxes.children.filter(item => item.isMesh).length, 4, 'only the four flat ray glows remain');
+  assert.ok(model.angleAxes.children.every(item => item.geometry.type !== 'SphereGeometry'));
+  const empty = buildSolarScene({ data: emptySceneData() });
+  assert.equal(empty.angleAxes.children.length, 0);
+});
+
+test('each planet has its own evenly spaced lane, with Earth central and Sun in the third planet lane', async () => {
+  const { buildMapState } = await import('./map-data.js');
+  const order = ['moon', 'mercury', 'venus', 'sun', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+  const profile = { name: 'Perfil fictício A', birthDate: '1991-06-17', birthTime: '04:23', timeUnknown: false, place: 'São Paulo', lat: -23.55, lon: -46.63, timezone: 'America/Sao_Paulo' };
+  const partner = { ...profile, name: 'Perfil fictício B', birthDate: '1995-07-10' };
+  for (const mode of ['natal', 'transits', 'synastry', 'synastry-transits']) {
+    const state = buildMapState({ profile, partner, mode, date: new Date('2026-10-18T20:19:00Z') });
+    const data = structuredClone(state.scene);
+    const model = buildSolarScene({ data });
+    const radial = planet => Math.hypot(planet.position.x, planet.position.z);
+    const natal = model.planets.filter(planet => order.includes(planet.name)).sort((a, b) => radial(a) - radial(b));
+    assert.deepEqual(natal.map(planet => planet.name), order, mode);
+    const planets = natal.filter(planet => planet.name !== 'moon');
+    for (let i = 1; i < planets.length; i++) {
+      assert.ok(Math.abs(radial(planets[i]) - radial(planets[i - 1]) - .45) < 1e-10, `${mode}: separate lanes for ${planets[i - 1].name}/${planets[i].name}`);
+    }
+    assert.ok(radial(natal[0]) + natal[0].userData.radius < radial(planets[0]) - planets[0].userData.radius, 'Moon stays by Earth, inside Mercury');
+    const laneRadii = model.orbitalRings.map(ring => Math.hypot(ring.geometry.attributes.position.getX(0), ring.geometry.attributes.position.getZ(0)));
+    assert.equal(laneRadii.length, order.length);
+    for (let i = 0; i < natal.length; i++) assert.ok(Math.abs(laneRadii[i] - radial(natal[i])) < 1e-6, `${mode}: ${natal[i].name} follows its own ring`);
+    assert.deepEqual(model.planets.find(planet => planet.name === 'earth').position.toArray(), [0, .34, 0]);
+    for (const planet of natal) {
+      const angle = (180 + data.asc - data.natal[planet.name].longitude) * Math.PI / 180;
+      assert.ok(planet.position.clone().setY(0).normalize().distanceTo(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle))) < 1e-10, `${mode}: ${planet.name}`);
+    }
+    data.outer.forEach((set, index) => {
+      for (const body of set.bodies) {
+        const planet = model.planets.find(planet => planet.name === body.id);
+        const angle = (180 + data.asc - body.longitude) * Math.PI / 180;
+        assert.ok(Math.abs(radial(planet) - [5.95, 6.55][index]) < 1e-10, `${mode}: ${body.id}`);
+        assert.ok(planet.position.clone().setY(0).normalize().distanceTo(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle))) < 1e-10, body.id);
+      }
+    });
+    assert.equal(model.orbitalRings.length, 10);
+    assert.deepEqual(data, state.scene, 'scene construction never changes calculated input');
+  }
+});
+
+test('eleven natal spheres preserve their heights, sizes, atlas order and one ring per lane', () => {
   const model = buildSolarScene();
   assert.equal(model.planets.length, 11);
   assert.equal(new Set(model.planets.map(planet => planet.geometry)).size, 11);
@@ -38,7 +89,7 @@ test('eleven natal spheres preserve the original orbit radii, heights, sizes and
   assert.ok(model.camera.isPerspectiveCamera);
   assert.ok(model.camera.position.y > 0 && model.camera.position.z > 0);
   assert.ok(model.camera.getWorldDirection(new THREE.Vector3()).dot(model.camera.position.clone().negate().normalize()) > .999);
-  assert.equal(model.orbitalRings.length, 7);
+  assert.equal(model.orbitalRings.length, 10);
   assert.ok(model.orbitalRings.every(ring => ring.isLineLoop));
   assert.equal(model.zodiac.userData.sectors, 12);
   assert.equal(model.saturnRing.geometry.type, 'RingGeometry');
@@ -46,16 +97,16 @@ test('eleven natal spheres preserve the original orbit radii, heights, sizes and
   assert.equal(model.system.children.filter(child => child.geometry?.type === 'RingGeometry').length, 1);
   const earth = model.planets.find(planet => planet.name === 'earth');
   assert.deepEqual(earth.position.toArray(), [0, .34, 0]);
-  const originalLayout = [
-    [.31, -2.3, .36, -1.15], [.20, -1.15, .24, .4], [.27, 1.4, .31, -1.6], [.30, 0, .34, 0],
-    [.23, -.6, .27, 2.1], [.42, -3.7, .45, 1.8], [.35, 2.8, .40, -2.8], [.29, .8, .33, 4.15],
-    [.28, -2.8, .32, -3.8], [.21, -3.4, .25, -.3], [.20, 3.9, .24, 2.4]
+  const layout = [
+    [.31, 1.95, .36], [.20, 1.05, .24], [.27, 1.5, .31], [.30, 0, .34],
+    [.23, 2.4, .27], [.42, 2.85, .45], [.35, 3.3, .40], [.29, 3.75, .33],
+    [.28, 4.2, .32], [.21, .55, .25], [.20, 4.65, .24]
   ];
   model.planets.forEach((planet, index) => {
-    const [radius, x, y, z] = originalLayout[index];
+    const [radius, orbit, y] = layout[index];
     assert.equal(planet.userData.radius, radius);
     assert.equal(planet.position.y, y);
-    assert.ok(Math.abs(Math.hypot(planet.position.x, planet.position.z) - Math.hypot(x, z)) < 1e-10);
+    assert.ok(Math.abs(Math.hypot(planet.position.x, planet.position.z) - orbit) < 1e-10);
     if (planet.name === 'earth') return;
     const angle = (180 + ascendant - natalPlacements[planet.name].longitude) * Math.PI / 180;
     assert.ok(planet.position.clone().setY(0).normalize().distanceTo(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle))) < 1e-10, planet.name);
@@ -64,6 +115,69 @@ test('eleven natal spheres preserve the original orbit radii, heights, sizes and
   assert.ok(Math.abs(Math.atan2(model.camera.position.y, model.camera.position.z) - Math.atan2(7.5, 10.5) - Math.PI / 18) < 1e-10);
   assert.deepEqual(model.view, { zoom: 1, tilt: 45.5 });
   assert.equal(model.scene.getObjectByName('mini-black-hole'), undefined);
+});
+
+test('Chiron is added only from supplied natal data without changing the other bodies or atlas cells', () => {
+  const original = buildSolarScene({ atlas: new THREE.Texture() });
+  assert.equal(original.planets.some(planet => planet.name === 'chiron'), false);
+  const data = fixtureSceneData();
+  data.natal.chiron = { longitude: 243.75, degree: '3°45′' };
+  const model = buildSolarScene({ atlas: new THREE.Texture(), data });
+  assert.equal(model.planets.length, original.planets.length + 1);
+  original.planets.forEach((planet, index) => {
+    const preserved = model.planets[index];
+    assert.equal(preserved.name, planet.name);
+    assert.deepEqual(preserved.position.toArray(), planet.position.toArray());
+    assert.deepEqual(preserved.userData, planet.userData);
+    assert.deepEqual(preserved.geometry.parameters, planet.geometry.parameters);
+    assert.deepEqual(preserved.material.map?.offset.toArray(), planet.material.map?.offset.toArray());
+  });
+  assert.equal(model.orbitalRings.length, 10);
+  assert.equal(model.aspectLines.length, original.aspectLines.length);
+  assert.equal(model.outerGuides.length, 0);
+  const chiron = model.planets.at(-1);
+  assert.equal(chiron.name, 'chiron');
+  assert.equal(chiron.geometry.type, 'SphereGeometry');
+  assert.equal(chiron.material.map, null);
+  assert.equal(chiron.userData.row, undefined);
+  assert.ok(chiron.position.y > chiron.userData.radius);
+  assert.ok(Math.abs(Math.hypot(chiron.position.x, chiron.position.z) - 3.2) < 1e-10);
+  const angle = (180 + data.asc - data.natal.chiron.longitude) * Math.PI / 180;
+  assert.ok(chiron.position.clone().setY(0).normalize().distanceTo(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle))) < 1e-10);
+  const leader = model.bodyLeaders.find(line => line.userData.bodyId === 'chiron');
+  const endpoint = new THREE.Vector3().fromBufferAttribute(leader.geometry.attributes.position, 1);
+  assert.ok(endpoint.distanceTo(new THREE.Vector3(Math.cos(angle) * 5, .04, Math.sin(angle) * 5)) < 1e-6);
+  const label = model.discLabels.find(item => item.kind === 'body' && item.bodyId === 'chiron');
+  assert.ok(label.position.equals(chiron.position));
+  assert.match(label.svg, /<circle .*<path /);
+  assert.doesNotMatch(label.svg, /<text|<image/);
+  assert.ok(label.name);
+  const ring = model.selectionRings.at(-1);
+  assert.equal(ring.name, 'selection-chiron');
+  assert.ok(ring.position.equals(chiron.position));
+});
+
+test('a sparse Chiron map keeps its own material and supports projected picking and degree selection labels', () => {
+  const data = emptySceneData();
+  data.asc = 80;
+  data.natal.chiron = { longitude: 170, degree: '20°00′' };
+  const model = buildSolarScene({ atlas: new THREE.Texture(), data });
+  assert.deepEqual(model.planets.map(planet => planet.name), ['earth', 'chiron']);
+  const chiron = model.planets[1];
+  assert.equal(chiron.material.map, null, 'Chiron never inherits a planetary atlas cell after filtering');
+  assert.equal(model.planets[0].userData.row, 1, 'Earth retains its original atlas cell');
+  const degreeIndex = model.discLabels.findIndex(item => item.kind === 'degree' && item.bodyId === 'chiron');
+  assert.equal(model.discLabels[degreeIndex].text, data.natal.chiron.degree);
+  for (const tilt of [20, 45.5, 75]) {
+    setSolarView(model, { zoom: 1, tilt });
+    const point = project(model, chiron.position);
+    const picked = pickSolarTarget(model, point.x, point.y);
+    assert.deepEqual(picked, { kind: 'body', id: 'chiron' });
+    assert.equal(projectSolarDiscLabels(model, { width: 320, height: 300 })[degreeIndex].visible, false);
+    model.selection = picked;
+    assert.equal(projectSolarDiscLabels(model, { width: 320, height: 300 })[degreeIndex].visible, true);
+    model.selection = null;
+  }
 });
 
 test('all eleven SVG body symbols stay centered and smaller than their projected spheres at every view', () => {
@@ -122,7 +236,7 @@ test('the pearl gold ruler has 360 exact ticks and an independent raised light l
   assert.notEqual(rulerLightMaterial, degreeTicks.material);
   assert.equal(rulerLightMaterial.blending, THREE.AdditiveBlending);
   assert.equal(rulerLightMaterial.depthWrite, false);
-  assert.equal(orbitalRings.length, 7);
+  assert.equal(orbitalRings.length, 10);
 });
 
 test('each non Earth sphere and its ruler connector share the exact natal longitude and ascendant orientation', () => {
@@ -239,7 +353,9 @@ test('picking finds all eleven projected bodies before their connected aspects a
   }
   const moon = model.planets.find(planet => planet.name === 'moon');
   const point = project(model, moon.position);
-  assert.deepEqual(pickSolarTarget(model, point.x - 14 / 160, point.y), { kind: 'body', id: 'moon' });
+  const earth = project(model, model.planets.find(planet => planet.name === 'earth').position);
+  const offset = new THREE.Vector2(-(point.y - earth.y) * 150, (point.x - earth.x) * 160).normalize().multiplyScalar(14);
+  assert.deepEqual(pickSolarTarget(model, point.x + offset.x / 160, point.y + offset.y / 150), { kind: 'body', id: 'moon' });
   assert.equal(pickSolarTarget(model, 1.1, 0), null);
   assert.equal(pickSolarTarget(model, 0, 0, { width: 0, height: 300 }), null);
   assert.equal(pickSolarTarget(model, NaN, 0), null);
@@ -342,8 +458,8 @@ test('calculated data: cusps drive the houses, the second ring sits outside the 
   const profile = { name: 'D', birthDate: '1991-06-17', birthTime: '04:23', timeUnknown: false, place: 'S', lat: -23.55, lon: -46.63333333333333, timezone: 'America/Sao_Paulo' };
   const state = buildMapState({ profile, mode: 'transits', date: new Date('2026-10-18T20:19:00Z') });
   const model = buildSolarScene({ data: state.scene });
-  assert.equal(model.planets.length, 21);
-  assert.equal(model.orbitalRings.length, 7);
+  assert.equal(model.planets.length, Object.keys(state.scene.natal).length + 1 + 10);
+  assert.equal(model.orbitalRings.length, 10);
   assert.deepEqual(model.view, { zoom: 1, tilt: 45.5 });
   const natalSizes = buildSolarScene().planets.map(planet => [planet.name, planet.userData.radius, planet.position.y]);
   natalSizes.forEach(([name, radius, y]) => {
@@ -387,4 +503,16 @@ test('calculated data: cusps drive the houses, the second ring sits outside the 
   const angleA = discPointAt(model, project(model, new THREE.Vector3(-5.2, 0, 0)).x, rim.y).angle;
   const towardViewer = project(model, new THREE.Vector3(-5.2 * Math.cos(.3), 0, 5.2 * Math.sin(.3)));
   assert.ok(discPointAt(model, towardViewer.x, towardViewer.y).angle < angleA, 'moving the left rim downward on screen is anticlockwise');
+});
+
+test('minor bodies take their own atlas cell and never a planetary one', () => {
+  const data = fixtureSceneData();
+  data.natal.chiron = { longitude: 243.75, degree: '3°45′' };
+  data.natal.vesta = { longitude: 100, degree: '10°00′' };
+  const model = buildSolarScene({ atlas: new THREE.Texture(), minorAtlas: new THREE.Texture(), data });
+  const chiron = model.planets.find(planet => planet.name === 'chiron'), vesta = model.planets.find(planet => planet.name === 'vesta');
+  assert.ok(chiron.material.map && vesta.material.map, 'minor bodies are textured');
+  assert.deepEqual([chiron.userData.row, chiron.userData.column], [0, 0]);
+  assert.deepEqual([vesta.userData.row, vesta.userData.column], [1, 1]);
+  assert.notEqual(chiron.material.map.offset.x, model.planets.find(planet => planet.name === 'sun').material.map.offset.x + 1);
 });

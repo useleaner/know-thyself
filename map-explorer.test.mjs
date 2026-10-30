@@ -12,7 +12,7 @@ const partner = { name: 'Perfil sintético B', birthDate: '1984-12-05', birthTim
 const day = new Date('2026-10-18T20:19:00Z');
 const natal = buildMapState({ profile, mode: 'natal', date: day });
 
-test('planet popup uses calculated sign, house, degree and authored readings with concrete dignities (L11)', () => {
+test('planet popup uses calculated sign, house, degree and authored readings with concrete dignities', () => {
   const sun = natal.natal.bodies.find(body => body.id === 'sun');
   const html = renderMapReading({ kind: 'body', id: 'sun' }, natal);
   assert.ok(html.includes(`Sol natal em ${SIGN_GLYPHS[sun.sign]} ${SIGN_NAMES[sun.sign]} e na ${sun.house}ª Casa`));
@@ -21,7 +21,7 @@ test('planet popup uses calculated sign, house, degree and authored readings wit
   assert.ok(html.includes(`${SIGN_NAMES[sun.sign]} ${formatDegree(sun)}`));
   assert.match(html, /<h3 id="map-related-title">Conexões de Sol natal<\/h3>/);
   assert.match(html, /aria-expanded="true" aria-controls="map-reading-detail"/);
-  assert.match(html, /data-map-action="toggle-reading"/, 'the whole header toggles (L14)');
+  assert.match(html, /data-map-action="toggle-reading"/, 'the whole header toggles');
   const saturn = natal.natal.bodies.find(body => body.id === 'saturn');
   assert.equal(saturn.retrograde, true);
   const retro = renderMapReading({ kind: 'body', id: saturn.id }, natal);
@@ -41,9 +41,9 @@ test('planet popup uses calculated sign, house, degree and authored readings wit
 test('all available natal positions and aspects select authored data', () => {
   for (const current of [profile, { ...profile, birthDate: '1991-06-18' }, partner]) {
     const state = buildMapState({ profile: current, mode: 'natal', date: day });
-    // Quíron aparece nas posições, sem leitura própria; os 12 corpos com catálogo autoral recebem texto.
+    // Cada corpo calculado e visível recebe o catálogo autoral correspondente.
     assert.deepEqual(state.natal.bodies.map(body => body.id).slice(10), ['node', 'lilith', 'chiron']);
-    for (const body of state.natal.bodies.filter(body => body.id !== 'chiron')) {
+    for (const body of state.natal.bodies) {
       const html = renderMapReading({ kind: 'body', id: body.id }, state);
       assert.ok(html.includes(escapeHTML(natalSignTexts[body.id][body.sign][0])), `${current.name}:${body.id}:sign`);
       assert.ok(html.includes(escapeHTML(natalHouseTexts[body.id][body.house][0])), `${current.name}:${body.id}:house`);
@@ -59,13 +59,13 @@ test('all available natal positions and aspects select authored data', () => {
   }
 });
 
-test('switching while collapsed renders the new body collapsed (L13); unknown ids render nothing', () => {
+test('switching while collapsed renders the new body collapsed; unknown ids render nothing', () => {
   const moon = renderMapReading({ kind: 'body', id: 'moon' }, natal, false);
   assert.match(moon, /aria-expanded="false"/);
   assert.match(moon, /id="map-reading-detail" class="map-reading-detail" hidden/);
   assert.equal(renderMapReading({ kind: 'body', id: '<script>' }, natal), '');
   assert.equal(renderMapReading({ kind: 'aspect', id: 'invented' }, natal), '');
-  assert.equal(renderMapReading({ kind: 'body', id: 'chiron' }, natal), '', 'no absent body receives text');
+  assert.equal(renderMapReading({ kind: 'body', id: 'ceres' }, natal), '', 'no absent body receives text');
   assert.equal(renderMapReading({ kind: 'body', id: 'transit-sun' }, natal), '', 'no transit body in natal mode');
   assert.equal(renderMapReading({ kind: 'body', id: 'sun' }, { status: 'empty' }), '');
   assert.match(renderMapReading({ kind: 'body', id: 'earth' }, natal), /referência geocêntrica/);
@@ -92,10 +92,10 @@ test('transit and synastry bodies and aspects carry their own context', () => {
   assert.match(escaped, /&lt;img/);
 });
 
-test('the menu lists twelve natal bodies, four calculated angles and Earth; other modes preserve their second ring', () => {
+test('the menu lists visible natal bodies, four calculated angles and Earth; other modes preserve their second ring', () => {
   const bodies = selectableBodies(natal);
-  assert.equal(bodies.length, 17);
-  assert.deepEqual(new Set(bodies.map(body => body.id)), new Set([...natal.natal.bodies.map(body => body.id).filter(id => id !== 'chiron'), 'earth', 'asc', 'dsc', 'mc', 'ic']));
+  assert.equal(bodies.length, 18);
+  assert.deepEqual(new Set(bodies.map(body => body.id)), new Set([...natal.natal.bodies.map(body => body.id), 'earth', 'asc', 'dsc', 'mc', 'ic']));
   for (const id of ['asc', 'dsc', 'mc', 'ic']) {
     const body = findBody(natal, id);
     const html = renderMapReading({ kind: 'body', id }, natal);
@@ -106,7 +106,8 @@ test('the menu lists twelve natal bodies, four calculated angles and Earth; othe
   }
   const transits = buildMapState({ profile, mode: 'transits', date: day });
   const outer = selectableBodies(transits);
-  assert.equal(outer.length, 21);
+  assert.equal(outer.length, 22, 'planets, Earth, Chiron and the transit ring');
+  assert.ok(outer.some(body => body.id === 'chiron' && body.set === 'natal'), 'Chiron stays selectable in transit modes');
   assert.equal(outer.filter(body => body.set === 'transit').length, 10);
   assert.deepEqual(selectableBodies({ status: 'empty' }), []);
 });

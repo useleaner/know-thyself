@@ -2,7 +2,7 @@
 #map-reading-content { max-height: none; overflow: visible; }
 .map-reading-header { padding: 0; }
 .map-reading-header h2 { margin-right: 36px; }
-.map-reading-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 6px; margin-left: -6px; border: 0; border-radius: 8px; background: transparent; color: #f6e4ca; font: 400 12px/1.4 Space, sans-serif; text-align: left; cursor: pointer; }
+.map-reading-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 6px; margin-left: -6px; border: 0; border-radius: 8px; background: transparent; color: #f6e4ca; font: 400 12px/1.4 Space, sans-serif; text-align: left; cursor: pointer; }
 .map-reading-toggle:hover { background: #f1d9a814; }
 .map-reading-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
 .map-reading-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }

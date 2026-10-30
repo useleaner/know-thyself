@@ -23,7 +23,12 @@ const bodyGlyphs = {
   uranus: '<circle cx="12" cy="18.5" r="3"/><path d="M12 15.5V3M4 3v11M20 3v11M4 8.5h16"/>',
   neptune: '<path d="M5 4c0 12 14 12 14 0M12 2v20M8 18h8M3 6l2-2 2 2M17 6l2-2 2 2"/>',
   moon: '<path d="M16.5 3a9.5 9.5 0 1 0 0 18 9.8 9.8 0 0 1 0-18Z"/>',
-  pluto: '<path d="M7 21V3h6a5 5 0 0 1 0 10H7M7 21h12"/>'
+  pluto: '<path d="M7 21V3h6a5 5 0 0 1 0 10H7M7 21h12"/>',
+  chiron: '<circle cx="10" cy="17.5" r="4"/><path d="M10 13.5V2M10 8l7-6M10 8l7 6"/>',
+  ceres: '<path d="M12 21v-8M12 13a6 6 0 1 0-6-6"/>',
+  pallas: '<circle cx="12" cy="8" r="5"/><path d="M12 13v9M8 18h8M12 3V1"/>',
+  juno: '<path d="M12 3v18M7 7l5 3 5-3M6 14h12"/>',
+  vesta: '<path d="M12 4v13M7 11l5 6 5-6M7 21h10"/>'
 };
 
 // O ASC fica à esquerda (-X); planetas, signos e régua compartilham a mesma orientação natal.
@@ -32,20 +37,28 @@ function longitudePoint(longitude, radius = 5, y = .04, ascendant = 0) {
   return new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
 }
 
-// shortcut: raios orbitais, alturas e tamanhos são composição visual; só os ângulos vêm do mapa fornecido.
+// Distâncias visuais sem escala astronômica; só os ângulos vêm do mapa fornecido.
+// Terra central, Lua próxima e uma faixa por planeta; o Sol ocupa a terceira, entre Vênus e Marte.
 const bodies = [
-  { id: 'sun', radius: .31, color: '#e6ae54', position: [-2.3, .36, -1.15] },
-  { id: 'mercury', radius: .20, color: '#8b847b', position: [-1.15, .24, .4] },
-  { id: 'venus', radius: .27, color: '#d9b990', position: [1.4, .31, -1.6] },
-  { id: 'earth', radius: .30, color: '#487ca1', position: [0, .34, 0] },
-  { id: 'mars', radius: .23, color: '#a95f40', position: [-.6, .27, 2.1] },
-  { id: 'jupiter', radius: .42, color: '#bda48c', position: [-3.7, .45, 1.8] },
-  { id: 'saturn', radius: .35, color: '#c6b48e', position: [2.8, .40, -2.8] },
-  { id: 'uranus', radius: .29, color: '#8ec8ca', position: [.8, .33, 4.15] },
-  { id: 'neptune', radius: .28, color: '#3e67aa', position: [-2.8, .32, -3.8] },
-  { id: 'moon', radius: .21, color: '#b8b9ba', position: [-3.4, .25, -.3] },
-  { id: 'pluto', radius: .20, color: '#c7b9aa', position: [3.9, .24, 2.4] }
+  { id: 'sun', radius: .31, color: '#e6ae54', orbit: 1.95, height: .36 },
+  { id: 'mercury', radius: .20, color: '#8b847b', orbit: 1.05, height: .24 },
+  { id: 'venus', radius: .27, color: '#d9b990', orbit: 1.5, height: .31 },
+  { id: 'earth', radius: .30, color: '#487ca1', orbit: 0, height: .34 },
+  { id: 'mars', radius: .23, color: '#a95f40', orbit: 2.4, height: .27 },
+  { id: 'jupiter', radius: .42, color: '#bda48c', orbit: 2.85, height: .45 },
+  { id: 'saturn', radius: .35, color: '#c6b48e', orbit: 3.3, height: .40 },
+  { id: 'uranus', radius: .29, color: '#8ec8ca', orbit: 3.75, height: .33 },
+  { id: 'neptune', radius: .28, color: '#3e67aa', orbit: 4.2, height: .32 },
+  { id: 'moon', radius: .21, color: '#b8b9ba', orbit: 0.55, height: .25 },
+  { id: 'pluto', radius: .20, color: '#c7b9aa', orbit: 4.65, height: .24 },
+  { id: 'chiron', radius: .20, color: '#b4a691', orbit: 3.2, height: .24 },
+  { id: 'ceres', radius: .17, color: '#8d8a86', orbit: 2.9, height: .22 },
+  { id: 'pallas', radius: .17, color: '#85849a', orbit: 3.65, height: .22 },
+  { id: 'juno', radius: .16, color: '#a98d72', orbit: 4.4, height: .21 },
+  { id: 'vesta', radius: .16, color: '#b9a183', orbit: 2.45, height: .21 }
 ];
+// Corpos menores: atlas próprio (3×3, mesma grade do atlas dos planetas), na ordem abaixo.
+const MINOR = ['chiron', 'ceres', 'pallas', 'juno', 'vesta'];
 
 function applyAtlas(planets, atlas) {
   planets.forEach(planet => {
@@ -67,6 +80,15 @@ function applyAtlas(planets, atlas) {
   });
 }
 
+function applyMinorAtlas(planets, atlas) {
+  const minor = planets.filter(planet => MINOR.includes(planet.name));
+  minor.forEach(planet => {
+    const index = MINOR.indexOf(planet.name);
+    Object.assign(planet.userData, { row: Math.floor(index / 3), column: index % 3 });
+  });
+  applyAtlas(minor, atlas);
+}
+
 function circle(radius, material) {
   const points = Array.from({ length: 128 }, (_, index) => {
     const angle = index / 128 * Math.PI * 2;
@@ -75,7 +97,7 @@ function circle(radius, material) {
   return new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(points), material);
 }
 
-export function buildSolarScene({ atlas = null, data = fixtureSceneData() } = {}) {
+export function buildSolarScene({ atlas = null, minorAtlas = null, data = fixtureSceneData() } = {}) {
   const ascendant = data.asc;
   const at = (longitude, radius, y) => longitudePoint(longitude, radius, y, ascendant);
   const natalPlacements = data.natal;
@@ -90,7 +112,8 @@ export function buildSolarScene({ atlas = null, data = fixtureSceneData() } = {}
   light.position.set(-5, 8, 7);
   scene.add(light);
 
-  const planets = bodies.filter(body => body.id === 'earth' ? Object.keys(natalPlacements).length > 0 : natalPlacements[body.id]).map((body, index) => {
+  const planets = bodies.filter(body => body.id === 'earth' ? Object.keys(natalPlacements).length > 0 : natalPlacements[body.id]).map(body => {
+    const index = bodies.indexOf(body);
     const material = new THREE.MeshStandardMaterial({ color: body.color, roughness: .92, metalness: 0 });
     if (body.id === 'sun') {
       material.emissive.set(body.color);
@@ -100,8 +123,8 @@ export function buildSolarScene({ atlas = null, data = fixtureSceneData() } = {}
     planet.name = body.id;
     planet.userData = { id: body.id, radius: body.radius };
     if (index < 9) Object.assign(planet.userData, { row: Math.floor(index / 3), column: index % 3 });
-    if (body.id === 'earth') planet.position.fromArray(body.position);
-    else planet.position.copy(at(natalPlacements[body.id].longitude, Math.hypot(body.position[0], body.position[2]), body.position[1]));
+    if (body.id === 'earth') planet.position.set(0, body.height, 0);
+    else planet.position.copy(at(natalPlacements[body.id].longitude, body.orbit, body.height));
     planet.rotation.y = index * .7;
     system.add(planet);
     return planet;
@@ -135,6 +158,7 @@ export function buildSolarScene({ atlas = null, data = fixtureSceneData() } = {}
     });
   });
   if (atlas) applyAtlas(planets, atlas);
+  if (minorAtlas) applyMinorAtlas(planets, minorAtlas);
 
   // Linhas de aspecto: natal × natal, trânsito × natal ou parceiro × natal, conforme o modo.
   const aspectLines = data.aspects.map(aspect => {
@@ -170,8 +194,8 @@ export function buildSolarScene({ atlas = null, data = fixtureSceneData() } = {}
   system.add(saturnRing);
 
   const orbitMaterial = new THREE.LineBasicMaterial({ color: '#decbaa', transparent: true, opacity: .24, depthWrite: false });
-  const orbitalRings = [.7, 1.25, 1.85, 2.5, 3.15, 3.9, 4.6].map(radius => {
-    const ring = circle(radius, orbitMaterial);
+  const orbitalRings = bodies.filter(body => body.orbit > 0 && !MINOR.includes(body.id)).sort((a, b) => a.orbit - b.orbit).map(body => {
+    const ring = circle(body.orbit, orbitMaterial);
     system.add(ring);
     return ring;
   });
@@ -224,8 +248,6 @@ export function buildSolarScene({ atlas = null, data = fixtureSceneData() } = {}
   // sem hora de nascimento (sem MC) nada é desenhado.
   const angleGlowMaterial = new THREE.MeshBasicMaterial({ color: '#f1d9a8', transparent: true, opacity: .6,
     blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
-  const angleHaloMaterial = new THREE.MeshBasicMaterial({ color: '#efd4a0', transparent: true, opacity: .3,
-    blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
   const angleAxes = new THREE.Group();
   angleAxes.name = 'angle-axes';
   if (Number.isFinite(data.mc)) {
@@ -244,10 +266,8 @@ export function buildSolarScene({ atlas = null, data = fixtureSceneData() } = {}
     const coreMid = new THREE.LineBasicMaterial({ color: '#f1d9a8', transparent: true, opacity: .4, depthWrite: false });
     const coreFaint = new THREE.LineBasicMaterial({ color: '#f1d9a8', transparent: true, opacity: .14, depthWrite: false });
     const coreRim = new THREE.LineBasicMaterial({ color: '#fff1d6', transparent: true, opacity: .95, depthWrite: false });
-    const endMaterial = new THREE.MeshBasicMaterial({ color: '#fff4dd', transparent: true, opacity: .98, depthWrite: false });
     const mid = [], faint = [], rim = [];
     [['asc', 'dsc', data.asc], ['mc', 'ic', data.mc]].forEach(([from, to, longitude]) => {
-      const a = at(longitude, 5.62, .03), b = at(longitude + 180, 5.62, .03);
       for (const direction of [longitude, longitude + 180]) {
         const end = at(direction, 5.62, .03), tip = at(direction, 1.35, .03);
         rim.push(end, at(direction, 4.15, .03));
@@ -262,12 +282,7 @@ export function buildSolarScene({ atlas = null, data = fixtureSceneData() } = {}
         glow.position.y = -.01;
         angleAxes.add(glow);
       }
-      [[from, longitude, a], [to, longitude + 180, b]].forEach(([id, point, end]) => {
-        const dot = new THREE.Mesh(new THREE.SphereGeometry(.05, 12, 8), endMaterial);
-        dot.position.copy(end);
-        const halo = new THREE.Mesh(new THREE.SphereGeometry(.17, 16, 10), angleHaloMaterial);
-        halo.position.copy(end);
-        angleAxes.add(dot, halo);
+      [[from, longitude], [to, longitude + 180]].forEach(([id, point]) => {
         discLabels.push({ kind: 'angle', bodyId: id, text: BODY_GLYPHS[id], name: BODY_NAMES[id], position: at(point, 5.72, 0) });
       });
     });
@@ -310,7 +325,7 @@ export function buildSolarScene({ atlas = null, data = fixtureSceneData() } = {}
   system.add(zodiac);
 
   return { scene, camera, system, planets, aspectLines, selectionRings, orbitalRings, zodiac, discLabels, houseDividers, signDividers, saturnRing,
-    degreeTicks, rulerLight, rulerLightMaterial, angleAxes, angleGlowMaterial, angleHaloMaterial, bodyLeaders, degreeMarkers, degreeHalos, degreeMaterial, markerGlowMaterial,
+    degreeTicks, rulerLight, rulerLightMaterial, angleAxes, angleGlowMaterial, bodyLeaders, degreeMarkers, degreeHalos, degreeMaterial, markerGlowMaterial,
     outerLeaders, outerGuides, outerKey: data.outer.map(set => set.key).join(), rimOuter: data.outer.length ? OUTER_RADII[data.outer.length - 1] + .45 : 5.6,
     view: { zoom: 1, tilt: defaultTilt }, selection: null };
 }
@@ -495,6 +510,7 @@ export const isRimPoint = (model, point) => Boolean(point) && point.radius >= 4.
 export function initSolarStudy({ mount, previewMount, onSelect = () => {}, onViewChange = () => {}, onRotate = () => {}, onRotateEnd = () => {} }) {
   let model = buildSolarScene({ data: emptySceneData() });
   let atlasTexture = null;
+  let minorTexture = null;
   const area = mount.closest('[data-area]');
   const viewport = mount.closest('.area-scroll');
   const device = mount.closest('.device');
@@ -599,7 +615,6 @@ export function initSolarStudy({ mount, previewMount, onSelect = () => {}, onVie
     model.markerGlowMaterial.opacity = .2 + pulse * .07;
     const breath = Math.sin(time * .0009);
     model.angleGlowMaterial.opacity = .6 + breath * .12;
-    model.angleHaloMaterial.opacity = .3 + breath * .08;
     if (render()) frame = requestAnimationFrame(animate);
   }
   function refresh() {
@@ -608,7 +623,6 @@ export function initSolarStudy({ mount, previewMount, onSelect = () => {}, onVie
     model.degreeMaterial.opacity = .95;
     model.markerGlowMaterial.opacity = .2;
     model.angleGlowMaterial.opacity = .6;
-    model.angleHaloMaterial.opacity = .3;
     if (!document.hidden && render() && active && !reducedMotion.matches) frame = requestAnimationFrame(animate);
   }
   function positionLabels() {
@@ -802,6 +816,11 @@ export function initSolarStudy({ mount, previewMount, onSelect = () => {}, onVie
       message(textureFailed ? textureMessage : '');
       resize();
     });
+    new THREE.TextureLoader().load('assets/solar/minor-surfaces-v01.png', atlas => {
+      minorTexture = atlas;
+      applyMinorAtlas(model.planets, atlas);
+      refresh();
+    });
     new THREE.TextureLoader().load('assets/solar/planet-surfaces-v01.png', atlas => {
       atlasTexture = atlas;
       applyAtlas(model.planets, atlas);
@@ -854,7 +873,7 @@ export function initSolarStudy({ mount, previewMount, onSelect = () => {}, onVie
   function setData(data) {
     const previous = model;
     const fromFov = previous.camera.fov;
-    model = buildSolarScene({ atlas: atlasTexture, data });
+    model = buildSolarScene({ atlas: atlasTexture, minorAtlas: minorTexture, data });
     model.camera.copy(previous.camera);
     setSolarView(model, previous.view);
     const selection = previous.selection;

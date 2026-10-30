@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initOrbit, wrap, horizontalIntent, gestureStep, orbitPose } from './orbit.js';
 
-function fixture() {
+function fixture({ navigation } = {}) {
   const frames = new Map();
   let nextFrame = 0;
   class Element {
@@ -87,7 +87,7 @@ function fixture() {
     return event;
   }
   const changes = [];
-  const api = initOrbit({ scene, onChange: (name, viewport) => changes.push({ name, viewport }) });
+  const api = initOrbit({ scene, navigation, onChange: (name, viewport) => changes.push({ name, viewport }) });
   return {
     api, scene, status, areas, viewports, controls, reducedMotion, changes, emit, document,
     local: new Element(viewports.map, { orbitGesture: 'local' }),
@@ -106,6 +106,73 @@ function fixture() {
     get pendingFrames() { return frames.size; }
   };
 }
+
+function navigationFixture(saved = null, href = 'https://know.example/universo.html?mode=natal') {
+  const values = new Map(saved ? [['know-thyself.section', saved]] : []);
+  const listeners = new Map(), entries = [null];
+  let index = 0;
+  const navigation = {
+    location: new URL(href),
+    sessionStorage: { getItem: key => values.get(key), setItem: (key, value) => values.set(key, value) },
+    addEventListener: (type, callback) => listeners.set(type, callback),
+    history: {
+      get state() { return entries[index]; },
+      replaceState(state) { entries[index] = state; },
+      pushState(state, title, url) {
+        assert.equal(url, undefined, 'section changes never replace mode or notification parameters');
+        entries.splice(++index, entries.length, state);
+      }
+    },
+    move(delta) { index += delta; listeners.get('popstate')({ state: entries[index] }); },
+    get count() { return entries.length; }
+  };
+  return navigation;
+}
+
+test('sections survive reload and links to Profile/Settings without modifying the URL', () => {
+  const navigation = navigationFixture('kaballah');
+  const f = fixture({ navigation });
+  assert.equal(f.api.activeViewport(), f.viewports.kaballah);
+  assert.equal(f.changes[0].name, 'kaballah');
+  assert.equal(f.areas.kaballah.style.transform, 'translateX(-50%) translate3d(0px,0,0px) rotateY(0deg)');
+  assert.equal(navigation.count, 1, 'initial render replaces rather than adds an entry');
+  f.api.goTo('correspondences'); f.flush();
+  assert.equal(navigation.sessionStorage.getItem('know-thyself.section'), 'correspondences');
+  const returned = fixture({ navigation: navigationFixture(navigation.sessionStorage.getItem('know-thyself.section')) });
+  assert.equal(returned.api.activeViewport(), returned.viewports.correspondences);
+  assert.equal(navigation.location.search, '?mode=natal');
+});
+
+test('native back and forward restore sections without adding entries on history, resize or repeated selection', () => {
+  const navigation = navigationFixture();
+  const f = fixture({ navigation });
+  f.api.goTo('kaballah'); f.flush();
+  f.api.goTo('correspondences'); f.flush();
+  assert.equal(navigation.count, 3);
+  navigation.move(-1); f.flush();
+  assert.equal(f.api.activeViewport(), f.viewports.kaballah);
+  navigation.move(-1); f.flush();
+  assert.equal(f.api.activeViewport(), f.viewports.map);
+  navigation.move(1); f.flush();
+  assert.equal(f.api.activeViewport(), f.viewports.kaballah);
+  f.api.goTo('kaballah'); f.resize(520); f.flush();
+  assert.equal(navigation.count, 3);
+  assert.equal(navigation.sessionStorage.getItem('know-thyself.section'), 'kaballah');
+});
+
+test('notification deep links open the map and storage denial does not break navigation', () => {
+  const params = new URLSearchParams({ mode: 'transits', profile: 'synthetic', at: '2026-10-21T11:00:00.000Z', aspect: 'transit-sun~trine~mars' });
+  const directed = fixture({ navigation: navigationFixture('kaballah', `https://know.example/universo.html?${params}`) });
+  assert.equal(directed.api.activeViewport(), directed.viewports.map);
+  const navigation = navigationFixture('not-a-section');
+  Object.defineProperty(navigation, 'sessionStorage', { get() { throw Error('blocked'); } });
+  const blocked = fixture({ navigation });
+  assert.equal(blocked.api.activeViewport(), blocked.viewports.map);
+  blocked.api.goTo('correspondences'); blocked.flush();
+  assert.equal(blocked.api.activeViewport(), blocked.viewports.correspondences);
+  navigation.move(-1); blocked.flush();
+  assert.equal(blocked.api.activeViewport(), blocked.viewports.map);
+});
 
 test('circular geometry wraps continuously and faces the active area forward', () => {
   assert.equal(wrap(-1), 2);

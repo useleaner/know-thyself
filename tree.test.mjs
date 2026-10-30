@@ -5,21 +5,21 @@ import { renderTree, spheres, personalPaths, beadStyles } from './tree.js';
 import { paths } from './study-data.js';
 import { computeTree } from './cabala-engine.js';
 
-test('marcadores pessoais menores preservam números, dom e alvo de toque independente da escala', () => {
+test('marcadores das duas árvores têm tamanho intermediário igual e preservam dom e alvo de toque', () => {
   const tree = computeTree({ name: 'Teste Marcadores Sintético', birthDate: '1991-06-17' });
-  const svg = renderTree('personal', paths, tree);
-  const markers = [...svg.matchAll(/<g class="path-marker">(.*?)<\/g>/gs)].map(match => match[1]);
-  assert.equal(markers.length, 22);
-  for (const marker of markers) {
-    assert.match(marker, /class="path-marker-hit" d="M[-\d.]+ [-\d.]+h\.01"[^>]*stroke-width="44" stroke-linecap="round" vector-effect="non-scaling-stroke" pointer-events="stroke"/);
-    assert.match(marker, /class="path-focus"[^>]*r="20"/);
-    assert.match(marker, /<image[^>]*width="34.4" height="34.4"/);
-    assert.match(marker, /class="path-number"[^>]*font-size="19"/);
+  const personal = renderTree('personal', paths, tree);
+  for (const svg of [renderTree('base', paths), personal]) {
+    const markers = [...svg.matchAll(/<g class="path-marker">(.*?)<\/g>/gs)].map(match => match[1]);
+    assert.equal(markers.length, 22);
+    for (const marker of markers) {
+      assert.match(marker, /class="path-marker-hit" d="M[-\d.]+ [-\d.]+h\.01"[^>]*stroke-width="44" stroke-linecap="round" vector-effect="non-scaling-stroke" pointer-events="stroke"/);
+      assert.match(marker, /class="path-focus"[^>]*r="22.5"/);
+      assert.match(marker, /<image[^>]*width="41.2" height="41.2"/);
+    }
+    assert.equal((svg.match(/class="sphere-asset"[^>]*width="108" height="108"/g) || []).length, 10);
   }
-  assert.equal((svg.match(/class="sphere-asset"[^>]*width="108" height="108"/g) || []).length, 10);
-  assert.equal((svg.match(/assets\/path-marker-gift.svg/g) || []).length, tree.paths.filter(path => path.gift).length);
-  const base = renderTree('base', paths);
-  assert.equal((base.match(/<image[^>]*width="48" height="48"/g) || []).length, 22);
+  assert.equal((personal.match(/class="path-number"[^>]*font-size="19"/g) || []).length, 22);
+  assert.equal((personal.match(/assets\/path-marker-gift.svg/g) || []).length, tree.paths.filter(path => path.gift).length);
 });
 
 test('new filaments preserve every path, sample and interactive target', () => {
@@ -48,10 +48,10 @@ test('background worlds retain the three correspondence anchors outside the inte
   assert.match(html, /class="tree-worlds"[^]*?<\/div>\s*<div id="tree-mount">/);
 });
 
-test('caminhos de luz seguem o board: fileiras a partir da borda, primeira linha no lado positivo e contas por tipo', () => {
+test('caminhos de luz: fileiras a partir da borda, primeira linha no lado positivo e contas por tipo', () => {
   const svg = renderTree('personal');
   const path1 = svg.match(/data-path="1".*?<path class="path-hit"/s)[0];
-  // Guia central, depois Missão secundária (lado positivo) e Padrão, como no board Caminhos.
+  // Guia central, depois Missão secundária (lado positivo) e Padrão.
   assert.match(path1, /<path d="M261.9 101.9L138.1 173.1" fill="none" stroke="#fff" stroke-opacity=".14"/);
   assert.match(path1, /d="M265.1 107.6L141.4 178.7"[^>]*stroke="#dcfff0"[^>]*stroke-dasharray="0 11"/);
   assert.match(path1, /d="M258.6 96.3L134.9 167.4"[^>]*stroke="#fffaf0"[^>]*stroke-dasharray="0 14"/);

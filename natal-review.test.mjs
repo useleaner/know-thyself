@@ -26,7 +26,7 @@ test('todos aspectos calculáveis dos12 corpos disponíveis chegam à seleção 
   for (const [index, profile] of profiles.entries()) {
     const state = stateOf(profile);
     const selected = new Set(state.aspects.map(signature));
-    // Quíron e asteroides só aparecem nas posições; os 12 corpos com leitura entram nos aspectos.
+    // Aspectos continuam restritos aos 12 corpos com catálogo de pares.
     const read = state.natal.bodies.filter(body => body.id !== 'chiron');
     for (const aspect of computeAspects(read, read)) {
       if (!selected.has(signature(aspect))) omitted.push(`${index}:${signature(aspect)}`);
@@ -95,7 +95,7 @@ test('cargaEN real alcança todos oscorpos, quatroângulos e condições retróg
     let count=0;
     for(const profile of ${JSON.stringify(profiles)}){
       const state=buildMapState({profile,mode:'natal'});
-      for(const body of state.natal.bodies.filter(body=>body.id!=='chiron')){
+      for(const body of state.natal.bodies){
         const html=renderMapReading({kind:'body',id:body.id},state);
         for(const pair of [natalSignTexts[body.id][body.sign],natalHouseTexts[body.id][body.house]])assert.ok(html.includes(escapeHTML(pair[1])),body.id);
         if(body.retrograde&&natalRetrogradeTexts[body.id])assert.ok(html.includes(escapeHTML(natalRetrogradeTexts[body.id][1])),'retro '+body.id);
@@ -106,7 +106,7 @@ test('cargaEN real alcança todos oscorpos, quatroângulos e condições retróg
     }console.log(count);`;
   const result = spawnSync(process.execPath, ['--input-type=module', '-e', code], { cwd: new URL('.', import.meta.url), encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.trim(), '64');
+  assert.equal(result.stdout.trim(), '68');
 });
 
 // Horizonte e meridiano reais não coincidem com os limites de casas em todos os sistemas.

@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 
 const require = createRequire(import.meta.url);
 const auth = require('./lib/google-auth.cjs');
-const handler = require('./api/auth.js');
+const handler = require('./api/auth.js').createHandler({ recordLogin: async () => '00000000-0000-4000-8000-000000000001', accountFor: async user => user.accountId });
 const settings = {
   GOOGLE_CLIENT_ID: '123-test.apps.googleusercontent.com',
   GOOGLE_CLIENT_SECRET: 'test-client-secret',
@@ -23,13 +23,13 @@ function configured(t, overrides = {}) {
   return auth.configuration();
 }
 
-async function request(action, { method = 'GET', headers = {}, query = '', body } = {}) {
+async function request(action, { method = 'GET', headers = {}, query = '', body, handle = handler } = {}) {
   const res = {
     headers: {}, statusCode: 200,
     setHeader(name, value) { this.headers[name.toLowerCase()] = value; },
     end(value = '') { this.body = value; }
   };
-  await handler({ method, headers, body, url: `/api/auth?action=${action}${query}` }, res);
+  await handle({ method, headers, body, url: `/api/auth?action=${action}${query}` }, res);
   return res;
 }
 
@@ -111,6 +111,23 @@ test('callback handles cancellation and missing code with stable error names', a
   assert.equal((await request('callback', { headers, query: '&state=test-state' })).headers.location, '/?auth_error=invalid_response');
 });
 
+test('session lasts 90 days, survives the old 8-hour limit and expires exactly at its deadline', t => {
+  const config = configured(t);
+  const now = Date.UTC(2026, 0, 1);
+  const seconds = 90 * 24 * 60 * 60;
+  assert.equal(auth.SESSION_SECONDS, seconds);
+  const token = auth.seal({ accountId: '00000000-0000-4000-8000-000000000001', user: googleUser }, config, 'session', auth.SESSION_SECONDS, now);
+  const header = `${auth.SESSION_COOKIE}=${token}`;
+  const cookie = auth.cookie(auth.SESSION_COOKIE, token, config, auth.SESSION_SECONDS);
+  assert.match(cookie, /Path=\/; HttpOnly; SameSite=Lax; Max-Age=7776000; Secure$/);
+  for (const elapsed of [0, 8 * 60 * 60 * 1000 + 1, seconds * 1000 - 1]) {
+    assert.equal(auth.authorizedSession(header, config, now + elapsed)?.sub, googleUser.sub);
+  }
+  for (const elapsed of [seconds * 1000, seconds * 1000 + 1]) {
+    assert.equal(auth.authorizedSession(header, config, now + elapsed), null);
+  }
+});
+
 test('successful callback exchanges code on the server and exposes only name/email in session API', async t => {
   const config = configured(t);
   const calls = [];
@@ -127,12 +144,12 @@ test('successful callback exchanges code on the server and exposes only name/ema
   assert.equal(calls[1].url, 'https://openidconnect.googleapis.com/v1/userinfo');
   assert.equal(calls[1].options.headers.Authorization, 'Bearer private-google-token');
   const sessionCookie = res.headers['set-cookie'].find(value => value.startsWith(`${auth.SESSION_COOKIE}=`));
-  assert.match(sessionCookie, /HttpOnly; SameSite=Lax; Max-Age=28800; Secure$/);
+  assert.match(sessionCookie, /HttpOnly; SameSite=Lax; Max-Age=7776000; Secure$/);
   const session = auth.open(auth.cookies(sessionCookie)[auth.SESSION_COOKIE], config, 'session');
   assert.equal(session.user.sub, googleUser.sub);
   assert.doesNotMatch(JSON.stringify(session), /private-google-token|private-code|test-client-secret/);
   const current = await request('session', { headers: { cookie: sessionCookie.split(';')[0] } });
-  assert.deepEqual(JSON.parse(current.body), { configured: true, clientId: settings.GOOGLE_CLIENT_ID, email: false, user: { name: googleUser.name, email: googleUser.email } });
+  assert.deepEqual(JSON.parse(current.body), { configured: true, clientId: settings.GOOGLE_CLIENT_ID, email: false, user: { name: googleUser.name, email: googleUser.email, accountId: '00000000-0000-4000-8000-000000000001' } });
   assert.equal(current.headers['cache-control'], 'private, no-store');
   assert.equal((await request('session', { headers: { cookie: `${sessionCookie.split(';')[0]}tampered` } })).body, JSON.stringify({ configured: true, clientId: settings.GOOGLE_CLIENT_ID, email: false, user: null }));
 });
@@ -149,7 +166,7 @@ test('callback denies a different Google email and clears any previous app sessi
 
 test('session authorization validates schema and the current allowed email on every request', async t => {
   const config = configured(t);
-  const header = user => `${auth.SESSION_COOKIE}=${auth.seal({ user }, config, 'session', 60)}`;
+  const header = user => `${auth.SESSION_COOKIE}=${auth.seal({ accountId: '00000000-0000-4000-8000-000000000001', user }, config, 'session', 60)}`;
   assert.equal(auth.authorizedSession(header(googleUser), config).email, googleUser.email);
   assert.equal(auth.authorizedSession(header({ ...googleUser, email: 'other@example.com' }), config), null);
   assert.equal(auth.authorizedSession(header({ ...googleUser, email_verified: false }), config), null);
@@ -255,7 +272,7 @@ test('Google popup creates the session in the caller, using its exact origin and
   assert.equal(exchanged.has('code_verifier'), false);
   assert.equal(calls[1].options.headers.Authorization, 'Bearer token');
   const cookie = res.headers['set-cookie'];
-  assert.match(cookie, /HttpOnly; SameSite=Lax; Max-Age=28800; Secure/);
+  assert.match(cookie, /HttpOnly; SameSite=Lax; Max-Age=7776000; Secure/);
   assert.equal(auth.authorizedSession(cookie.split(';')[0], config).sub, googleUser.sub);
   assert.equal(res.headers.location, undefined);
   assert.doesNotMatch(res.body, /token|single-use-google-code/);
@@ -323,4 +340,75 @@ test('installed PWA exchanges at its own allowlisted origin and can log out ther
   assert.equal(res.statusCode, 200);
   assert.equal(auth.authorizedSession(res.headers['set-cookie'].split(';')[0], config).sub, googleUser.sub);
   assert.equal((await request('logout', { method: 'POST', headers })).statusCode, 200);
+});
+
+for (const action of ['google-exchange', 'callback', 'email-verify']) {
+  test(`${action} persists only the verified identity before issuing a session, and refuses a database failure`, async t => {
+    const issuedAt = Date.UTC(2026, 0, 1);
+    t.mock.method(Date, 'now', () => issuedAt);
+    const config = configured(t);
+    let records = [];
+    const { email_verified, ...verifiedUser } = googleUser;
+    t.mock.method(auth, 'googleProfile', async () => verifiedUser);
+    const repository = { recordLogin: async user => { records.push(user); return '00000000-0000-4000-8000-000000000001'; } };
+    const handle = require('./api/auth.js').createHandler(repository);
+    let options = { handle };
+    if (action === 'google-exchange') options = { ...options, method: 'POST', headers: { origin: config.origin, 'x-requested-with': 'XmlHttpRequest' }, body: { code: 'verified-provider-code' } };
+    if (action === 'callback') options = { ...options, headers: { cookie: stateCookie(config) }, query: '&state=test-state&code=verified-provider-code' };
+    if (action === 'email-verify') {
+      t.mock.method(require('./lib/email-login.cjs'), 'emailConfiguration', () => ({ apiKey: 'synthetic', from: 'test@example.com' }));
+      const cookie = require('./lib/email-login.cjs').startCookie(googleUser.email, '12345678', config).split(';')[0];
+      options = { ...options, method: 'POST', headers: { origin: config.origin, cookie }, body: { code: '12345678' } };
+    }
+    const ok = await request(action, options);
+    assert.equal(ok.statusCode, action === 'callback' ? 303 : 200);
+    assert.equal(records.length, 1);
+    assert.equal(records[0].email, googleUser.email);
+    assert.equal(records[0].sub, action === 'email-verify' ? `email:${googleUser.email}` : googleUser.sub);
+    const cookies = [ok.headers['set-cookie']].flat();
+    assert.ok(cookies.some(value => value.startsWith(`${auth.SESSION_COOKIE}=`) && value.includes('Max-Age=7776000')));
+    const sessionCookie = cookies.find(value => value.startsWith(`${auth.SESSION_COOKIE}=`));
+    const token = auth.cookies(sessionCookie)[auth.SESSION_COOKIE];
+    assert.equal(auth.open(token, config, 'session').exp, issuedAt / 1000 + 90 * 24 * 60 * 60);
+    repository.recordLogin = async () => { throw new Error('secret connection error'); };
+    const failed = await request(action, options);
+    if (action === 'callback') assert.equal(failed.headers.location, '/?auth_error=accounts_unavailable');
+    else { assert.equal(failed.statusCode, 503); assert.deepEqual(JSON.parse(failed.body), { error: 'accounts_unavailable' }); }
+    assert.ok(![failed.headers['set-cookie']].flat().some(value => value?.startsWith(`${auth.SESSION_COOKIE}=`)));
+    assert.doesNotMatch(failed.body, /secret connection/);
+  });
+}
+
+test('denied verified identities are never persisted on any login path, including an email code issued before revocation', async t => {
+  const config = configured(t);
+  const other = { ...googleUser, email: 'denied@example.com' };
+  t.mock.method(auth, 'googleProfile', async () => other);
+  const handle = require('./api/auth.js').createHandler({ recordLogin: async () => { assert.fail('denied account must not be recorded'); } });
+  const popup = await request('google-exchange', { handle, method: 'POST', headers: { origin: config.origin, 'x-requested-with': 'XmlHttpRequest' }, body: { code: 'verified-code' } });
+  assert.equal(popup.statusCode, 403);
+  const callback = await request('callback', { handle, headers: { cookie: stateCookie(config) }, query: '&state=test-state&code=verified-code' });
+  assert.equal(callback.headers.location, '/?auth_error=access_denied');
+  const mail = require('./lib/email-login.cjs');
+  t.mock.method(mail, 'emailConfiguration', () => ({ apiKey: 'synthetic', from: 'test@example.com' }));
+  const cookie = mail.startCookie(other.email, '12345678', config).split(';')[0];
+  const email = await request('email-verify', { handle, method: 'POST', headers: { origin: config.origin, cookie }, body: { code: '12345678' } });
+  assert.equal(email.statusCode, 403);
+  assert.equal(email.headers['set-cookie'], undefined);
+});
+
+test('session API rechecks active account, rejects legacy cookies and does not hide database failure', async t => {
+  const config = configured(t);
+  const accountId = '00000000-0000-4000-8000-000000000001';
+  const cookie = `${auth.SESSION_COOKIE}=${auth.seal({ accountId, user: googleUser }, config, 'session', 60)}`;
+  let activeId = accountId, reads = 0;
+  const handle = require('./api/auth.js').createHandler({ accountFor: async user => { reads++; if (user.accountId !== activeId) throw new Error('account_inactive'); } });
+  assert.equal(JSON.parse((await request('session', { handle, headers: { cookie } })).body).user.accountId, accountId);
+  activeId = '00000000-0000-4000-8000-000000000002';
+  assert.equal(JSON.parse((await request('session', { handle, headers: { cookie } })).body).user, null);
+  const legacy = `${auth.SESSION_COOKIE}=${auth.seal({ user: googleUser }, config, 'session', 60)}`;
+  assert.equal(JSON.parse((await request('session', { handle, headers: { cookie: legacy } })).body).user, null);
+  assert.equal(reads, 2);
+  const fail = require('./api/auth.js').createHandler({ accountFor: async () => { throw new Error('database private failure'); } });
+  const failed = await request('session', { handle: fail, headers: { cookie } });
+  assert.equal(failed.statusCode, 503); assert.deepEqual(JSON.parse(failed.body), { error: 'accounts_unavailable' });
 });

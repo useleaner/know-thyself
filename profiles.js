@@ -1,9 +1,10 @@
 import { t } from './i18n.js';
+import { normalizeCabala } from './cabala-input.js';
 export const PROFILE_KEY = 'know-thyself.birth-profiles.v1';
 export const HOUSE_SYSTEMS = ['placidus', 'equal', 'whole'];
 export const DEFAULT_ORBS = Object.freeze({ conjunction: 8, opposition: 8, trine: 7, square: 7, sextile: 5 });
 export const DEFAULT_POINTS = Object.freeze({ node: true, lilith: true, chiron: true, ceres: false, pallas: false, juno: false, vesta: false });
-const SETTING_CHOICES = { houseSystem: HOUSE_SYSTEMS, zodiac: ['tropical', 'sidereal'], orbMode: ['auto', 'manual'] };
+const SETTING_CHOICES = { houseSystem: HOUSE_SYSTEMS, zodiac: ['tropical', 'sidereal'], orbMode: ['auto', 'manual'], cabalaLanguage: ['pt', 'en'] };
 const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const validOrb = value => Number.isInteger(value) && value >= 0 && value <= 15;
 function normalizeSettings(settings) {
@@ -36,14 +37,15 @@ export function validateProfile(input, today = new Date()) {
   const { lat, lon, timezone } = input;
   const none = [lat, lon, timezone].every(v => v === undefined || v === null);
   if (!none && !(Number.isFinite(lat) && lat >= -90 && lat <= 90 && Number.isFinite(lon) && lon >= -180 && lon <= 180 && validTimezone(timezone))) throw new Error(t('Coordenadas ou fuso horário inválidos. Escolha a cidade na lista de sugestões.'));
-  return { name, birthDate: date, birthTime: input.timeUnknown ? null : input.birthTime, timeUnknown: input.timeUnknown, place, lat: none ? null : lat, lon: none ? null : lon, timezone: none ? null : timezone };
+  const cabala = normalizeCabala(input.cabala);
+  return { name, birthDate: date, birthTime: input.timeUnknown ? null : input.birthTime, timeUnknown: input.timeUnknown, place, lat: none ? null : lat, lon: none ? null : lon, timezone: none ? null : timezone, ...(cabala ? { cabala } : {}) };
 }
 
 // Estado completo no mesmo blob v1; leitores antigos ignoram os campos extras.
 function readState(storage) {
   const account = accounts.get(storage);
   if (account) {
-    if (!account.state) throw new Error('profiles_not_ready');
+    if (!account.state) throw account.error || new Error(t('Não foi possível acessar seus perfis na conta. Tente novamente.'));
     return structuredClone(account.state);
   }
   const raw = storage.getItem(PROFILE_KEY);
@@ -68,7 +70,10 @@ function notifyProfiles() {
 }
 function writeState(storage, state) {
   const account = accounts.get(storage);
-  if (account) return persistAccount(account, state);
+  if (account) {
+    if (!account.state) throw account.error || new Error(t('Não foi possível acessar seus perfis na conta. Tente novamente.'));
+    return persistAccount(account, state);
+  }
   storage.setItem(PROFILE_KEY, JSON.stringify({ version: 1, ...state }));
   notifyProfiles();
 }
@@ -77,15 +82,18 @@ async function persistAccount(account, state) {
   if (account.busy) throw new Error(t('Aguarde o salvamento terminar e tente novamente.'));
   account.busy = true;
   try {
-    const response = await account.request('/api/profiles', {
+    const { request } = account; // destacado: fetch chamado como método de objeto dá "Illegal invocation"
+    const unavailable = () => new Error(t('Não foi possível salvar na sua conta. Confira a conexão e tente novamente.'));
+    const response = await request('/api/profiles', {
       method: 'PUT', credentials: 'same-origin', cache: 'no-store',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XmlHttpRequest' },
       body: JSON.stringify({ accountId: account.id, revision: account.revision, state: { version: 1, ...state } }),
       signal: AbortSignal.timeout(20000)
-    });
+    }).catch(() => { throw unavailable(); }); // erro técnico do navegador nunca chega à tela
+    if (response.status === 401) throw Object.assign(new Error(t('Sua sessão terminou. Entre novamente para salvar seus dados.')), { code: 'session_expired' });
     if (response.status === 409) throw new Error(t('Seus dados mudaram em outra aba ou aparelho. Recarregue a página antes de salvar.'));
-    if (!response.ok) throw new Error(t('Não foi possível salvar na sua conta. Confira a conexão e tente novamente.'));
-    const result = await response.json();
+    if (!response.ok) throw unavailable();
+    const result = await response.json().catch(() => { throw unavailable(); });
     if (result.accountId !== account.id || result.revision !== account.revision + 1) throw new Error('invalid_profiles_response');
     account.state = normalizeProfileState(result.state);
     account.revision = result.revision;
@@ -99,26 +107,32 @@ export async function connectProfiles({ storage = defaultStorage(), request = fe
   let result;
   try {
     const response = await request('/api/profiles', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20000) });
-    if (!response.ok) throw new Error('profiles_unavailable');
+    if (!response.ok) throw Object.assign(new Error(response.status === 401 ? t('Sua sessão terminou. Entre novamente para acessar seus perfis.') : t('Não foi possível acessar seus perfis na conta. Tente novamente.')), { code: response.status === 401 ? 'session_expired' : 'profiles_unavailable' });
     result = await response.json();
     if (typeof result.accountId !== 'string' || !Number.isSafeInteger(result.revision) || result.revision < 0) throw new Error('invalid_profiles_response');
   } catch (error) {
-    // Sem a conta (banco fora do ar ou não configurado), o aparelho volta a ser a fonte.
-    accounts.delete(storage);
+    // Falha da conta nunca libera o legado sem dono como se fosse dado desta conta.
+    accounts.set(storage, { state: null, error });
     throw error;
   }
   const account = { id: result.accountId, revision: result.revision, request, state: normalizeProfileState(result.state ?? { version: 1, profiles: [] }) };
   accounts.set(storage, account);
   // O legado não tinha dono: só importar para uma conta vazia, mediante confirmação.
   const marker = `${PROFILE_KEY}.imported`;
+  const declined = `${PROFILE_KEY}.import-declined.${account.id}`;
   let legacy;
-  try { if (!result.state && !storage.getItem(marker)) legacy = storage.getItem(PROFILE_KEY); } catch { /* banco funciona sem armazenamento local */ }
+  try { if (!result.state && !storage.getItem(marker) && !storage.getItem(declined)) legacy = storage.getItem(PROFILE_KEY); } catch { /* banco funciona sem armazenamento local */ }
   if (legacy) {
     let previous;
     try { previous = normalizeProfileState(JSON.parse(legacy)); } catch { /* preservar legado corrompido */ }
-    if (previous?.profiles.length && await confirmImport(t('Encontramos perfis salvos neste aparelho. Importar para esta conta?'))) {
-      await persistAccount(account, previous);
-      try { storage.setItem(marker, account.id); } catch { /* legado original permanece como cópia */ }
+    if (previous?.profiles.length) {
+      if (await confirmImport(t('Encontramos perfis salvos neste aparelho. Importar para esta conta?'))) {
+        // O legado permanece intacto para retentar; a conta fica bloqueada até confirmar a importação.
+        try { await persistAccount(account, previous); } catch (error) { accounts.set(storage, { state: null, error }); throw error; }
+        try { storage.setItem(marker, account.id); } catch { /* legado original permanece como cópia */ }
+      } else {
+        try { storage.setItem(declined, '1'); } catch { /* sem armazenamento, não é possível lembrar a recusa */ }
+      }
     }
   }
   notifyProfiles();
@@ -155,7 +169,8 @@ export function activeProfile(storage = defaultStorage()) {
 export function partnerProfile(storage = defaultStorage()) {
   const s = readState(storage);
   const active = s.profiles.find(p => p.id === s.activeId) ?? s.profiles[0];
-  return s.profiles.find(p => p.id === s.partnerId && p !== active) ?? null;
+  return s.profiles.find(p => p.id === s.partnerId && p !== active)
+    ?? (s.profiles.length === 2 ? s.profiles.find(p => p !== active) : null);
 }
 export function setActive(id, storage = defaultStorage()) {
   const s = readState(storage);
@@ -191,6 +206,10 @@ export function setSettings(patch, storage = defaultStorage()) {
     if (Object.hasOwn(patch, key) && (!isRecord(patch[key]) || Object.entries(patch[key]).some(([name, value]) => !Object.hasOwn(defaults, name) || !validate(value)))) throw new Error(key === 'orbs' ? t('Informe orbes inteiros entre 0° e 15°.') : t('Ponto ou asteroide inválido.'));
   }
   const state = readState(storage);
+  if (Object.hasOwn(patch, 'cabalaLanguage')) {
+    const profile = state.profiles.find(item => item.id === state.activeId) ?? state.profiles[0];
+    if (profile?.cabala) profile.cabala = normalizeCabala({ ...profile.cabala, language: patch.cabalaLanguage }, profile.birthDate);
+  }
   state.settings = { ...state.settings, ...patch, orbs: { ...state.settings.orbs, ...patch.orbs }, points: { ...state.settings.points, ...patch.points } };
   return writeState(storage, state);
 }

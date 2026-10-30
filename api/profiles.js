@@ -1,3 +1,4 @@
+const { logFailure } = require('../lib/operational-log.cjs');
 const auth = require('../lib/google-auth.cjs');
 const store = require('../lib/profile-store.cjs');
 const MAX_BODY = 128 * 1024;
@@ -45,7 +46,11 @@ function createHandler(repository = store) {
       if (body.accountId !== accountId) return json(409, { error: 'account_changed' });
       const result = await repository.write(accountId, state, body.revision);
       return result ? json(200, result) : json(409, { error: 'revision_conflict' });
-    } catch { return json(503, { error: 'profiles_unavailable' }); }
+    } catch (error) {
+      if (error.message === 'account_inactive') return json(401, { error: 'unauthorized' });
+      logFailure('profiles_unavailable');
+      return json(503, { error: 'profiles_unavailable' });
+    }
   };
 }
 module.exports = createHandler();

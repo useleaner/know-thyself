@@ -1,0 +1,16 @@
+.help-body { display: block; overflow: auto; background: #080d23 url('./assets/nebula.webp') center top/cover fixed; }
+.help-page { width: min(100%, 640px); min-height: 100svh; margin-inline: auto; padding: max(20px, env(safe-area-inset-top)) 24px max(40px, env(safe-area-inset-bottom)); background: #080d23ed; text-align: left; }
+.help-page h1 { margin: 24px 0 16px; color: #f8e6c7; font-size: 32px; line-height: 1.15; }
+.help-page p { max-width: 65ch; color: #e2def2; font-size: 16px; line-height: 1.7; }
+.help-page a { color: #f0caa1; text-underline-offset: 4px; overflow-wrap: anywhere; }
+.help-back, .help-contact, .help-page nav a, .help-page details > a { display: inline-flex; align-items: center; min-height: 44px; }
+.help-page details { margin-block: 16px; border-bottom: 1px solid #e9d2a840; padding-bottom: 16px; }
+.help-page summary { min-height: 44px; padding-block: 10px; color: #f8e6c7; font-size: 17px; line-height: 1.5; cursor: pointer; }
+.help-page summary::after { content: ''; flex: 0 0 8px; width: 8px; height: 8px; margin: 0 4px 4px auto; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+.help-page details[open] summary::after { transform: rotate(225deg); margin-bottom: 0; }
+.help-page summary:hover, .help-page a:hover { color: #fff1d6; }
+.help-page details[open] summary { color: var(--gold); }
+.help-page details p { margin-block: 12px; }
+.help-page nav { display: flex; gap: 8px 20px; flex-wrap: wrap; margin-top: 32px; }
+.help-page :is(a, summary):focus-visible { outline: 2px solid #f0caa1; outline-offset: 4px; }
+@media (max-width: 350px) { .help-page { padding-inline: 18px; } }

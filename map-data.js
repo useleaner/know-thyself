@@ -14,6 +14,7 @@ export const BODY_GLYPHS = { sun: '☉', moon: '☽', mercury: '☿', venus: '�
   ceres: '⚳', pallas: '⚴', juno: '⚵', vesta: '⚶' };
 Object.assign(BODY_NAMES, { node: t('Nó Norte médio'), lilith: t('Lilith média'), asc: t('Ascendente'), dsc: t('Descendente'), mc: t('Meio do Céu'), ic: t('Fundo do Céu') });
 Object.assign(BODY_GLYPHS, { asc: 'ASC', dsc: 'DSC', mc: 'MC', ic: 'IC' });
+export const MINOR_BODIES = ['chiron', 'ceres', 'pallas', 'juno', 'vesta'];
 export const PLANETS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
 export const ASPECT_INFO = {
   conjunction: { name: t('Conjunção'), verb: t('em conjunção com'), color: '#ddc69e' },
@@ -23,7 +24,7 @@ export const ASPECT_INFO = {
   sextile: { name: t('Sextil'), verb: t('em sextil com'), color: '#74a6ff' }
 };
 
-// Os quatro botões do seletor (L09). O segundo conjunto fica fora do aro dos signos (ver solar-study).
+// Os quatro botões do seletor. O segundo conjunto fica fora do aro dos signos (ver solar-study).
 export const MODES = [
   { id: 'natal', title: t('Mapa Astral'), label: t('Mapa natal'), transits: false, synastry: false },
   { id: 'transits', title: t('Mapa Astral com Trânsitos'), label: t('Natal com trânsitos'), transits: true, synastry: false },
@@ -168,6 +169,7 @@ export function buildMapState({ profile, partner = null, mode = 'transits', date
     } else {
       state.partner = partner;
       state.partnerChart = shown(partnerResult.chart);
+      state.partnerWarning = partnerResult.warning;
       const bodies = prefixed('partner', planetsOf(partnerResult.chart));
       outer.push({ key: 'partner', label: partner.name, bodies });
       aspects = crossAspects(bodies, natalPlanets, orbs);
@@ -178,18 +180,19 @@ export function buildMapState({ profile, partner = null, mode = 'transits', date
     state.sky = shown(fullSky);
     const bodies = prefixed('transit', planetsOf(state.sky));
     outer.push({ key: 'transit', label: t('Trânsitos'), bodies });
-    const transitAspects = crossAspects(bodies, natalPlanets, orbs);
+    // O alvo natal fica fixo enquanto só o céu avança com a data do trânsito.
+    const transitAspects = crossAspects(bodies, natalPlanets.map(body => ({ ...body, speed: 0 })), orbs);
     if (!state.partnerChart) aspects = transitAspects;
     state.dayAspect = transitAspects.reduce((best, aspect) => !best || aspect.orb < best.orb ? aspect : best, null);
   }
   state.aspects = aspects;
   state.outer = outer;
-  // Rodas do céu do dia nos modos com trânsitos (como L01 × L10); do mapa natal nos outros.
+  // Rodas do céu do dia nos modos com trânsitos; do mapa natal nos outros.
   state.balance = balanceSummary(balanceCounts(fullSky || fullNatal), !state.sky);
   state.positionsChart = state.sky || natal;
   state.scene = {
     asc: natal.asc, mc: natal.mc, cusps: natal.cusps,
-    natal: Object.fromEntries(natalPlanets.map(body => [body.id, { longitude: body.longitude, degree: formatDegree(body) }])),
+    natal: Object.fromEntries(natal.bodies.filter(body => PLANETS.includes(body.id) || MINOR_BODIES.includes(body.id)).map(body => [body.id, { longitude: body.longitude, degree: formatDegree(body) }])),
     aspects: info.id === 'natal' ? aspects.filter(item => PLANETS.includes(item.from) && PLANETS.includes(item.to)) : aspects,
     outer: outer.map(set => ({ key: set.key, bodies: set.bodies.map(body => ({ id: body.id, base: body.base, longitude: body.longitude, degree: formatDegree(body) })) }))
   };
@@ -209,11 +212,11 @@ export function findBody(state, id) {
   const [prefix, base] = id.includes('-') ? id.split('-') : ['natal', id];
   const chart = prefix === 'natal' ? state.natal : prefix === 'transit' ? state.sky : prefix === 'partner' ? state.partnerChart : null;
   const body = chart?.bodies.find(item => item.id === base);
-  if (!body || !(PLANETS.includes(base) || state.mode.id === 'natal' && ['node', 'lilith'].includes(base))) return null;
+  if (!body || !(PLANETS.includes(base) || state.mode.id === 'natal' && Object.hasOwn(DEFAULT_POINTS, base) || prefix === 'natal' && MINOR_BODIES.includes(base))) return null;
   const house = prefix === 'partner' ? body.house : houseOf(body.longitude, state.natal.cusps);
   return { ...body, id, base, set: prefix, name: BODY_NAMES[base], house };
 }
 
 export function findAspect(state, id) {
-  return state.aspects?.find(aspect => aspect.id === id) || null;
+  return state.aspects?.find(aspect => aspect.id === id) || (state.dayAspect && state.dayAspect.id === id ? state.dayAspect : null);
 }

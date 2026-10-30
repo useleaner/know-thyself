@@ -4,19 +4,20 @@
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(min-content, 1fr) auto auto;
   justify-items: center;
   gap: clamp(12px, 2.5cqh, 24px);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   padding: max(24px, env(safe-area-inset-top)) 24px max(20px, env(safe-area-inset-bottom));
   background: linear-gradient(180deg, #080d2320 15%, #080d2370 50%, #080d23ed 100%);
   text-align: center;
 }
-.login-content { container-type: size; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(8px, 3cqh, 24px); width: 100%; max-width: 340px; min-height: 0; }
+.login-content { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(8px, 3cqh, 24px); width: 100%; max-width: 340px; }
 .login-mark { flex: 0 1 154px; width: 88px; min-height: 32px; max-height: 154px; }
 .login-content h1 { flex: none; margin: 0; color: #f8e6c7; font-size: clamp(28px, 16cqh, 58px); line-height: 1; letter-spacing: -.035em; }
 .login-description { flex: none; margin: 0; max-width: 29ch; font-size: clamp(12px, 4cqh, 14px); line-height: 1.75; color: #e2def2; text-wrap: balance; }
-.login-actions { width: 100%; max-width: 340px; min-height: 0; }
+.login-actions { width: 100%; max-width: 340px; }
 .google-button {
   display: flex;
   align-items: center;
@@ -67,7 +68,7 @@
 .login-message:empty { display: none; }
 .login-gate { min-width: 0; margin: 12px 0 0; padding: 0; border: 0; }
 .login-gate:disabled .google-button, .login-gate:disabled .email-button { opacity: .4; cursor: default; }
-.login-accept { display: flex; align-items: center; gap: 4px; text-align: left; color: #e2def2; font-size: 11.5px; line-height: 1.5; }
+.login-accept { display: flex; align-items: flex-start; gap: 4px; text-align: left; color: #e2def2; font-size: 11.5px; line-height: 1.5; }
 .accept-check { position: relative; display: grid; place-items: center; width: 44px; min-height: 44px; flex: none; cursor: pointer; }
 .accept-check input { appearance: none; position: absolute; inset: 0; width: 44px; height: 44px; margin: 0; cursor: pointer; border-radius: 50%; font-size: 16px; }
 .accept-dot { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #a899ca; border-radius: 50%; background: #0b112999; pointer-events: none; }
@@ -75,9 +76,10 @@
 .accept-check input:checked + .accept-dot { background: var(--gold); border-color: var(--gold); }
 .accept-check input:checked + .accept-dot svg { opacity: 1; }
 .accept-check input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.accept-copy { display: flex; flex-wrap: wrap; align-items: center; column-gap: 3px; }
-.accept-copy label { cursor: pointer; }
-.accept-copy a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; color: var(--gold); text-underline-offset: 3px; }
+.accept-copy { min-width: 0; overflow-wrap: anywhere; }
+.accept-copy label { display: block; padding-top: max(0px, calc((44px - 1.5em) / 2)); cursor: pointer; }
+.accept-links { display: flex; flex-wrap: wrap; column-gap: 16px; }
+.accept-copy a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; max-width: 100%; color: var(--gold); text-underline-offset: 3px; }
 .accept-copy a:hover { color: #f8e6c7; }
 .accept-copy a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 /* A entrada mantém o cosmos imóvel. */
@@ -159,3 +161,5 @@
 .login-page:has(.splash[data-exit='morph']) :is(.login-content h1, .login-description, .login-actions, .login-footer) { animation: kt-enter 800ms cubic-bezier(.2,.8,.2,1) calc(280ms + var(--n) * 80ms) both; }
 .login-content h1 { --n: 0; } .login-description { --n: 1; } .login-actions { --n: 2; } .login-footer { --n: 3; }
 @keyframes kt-enter { from { opacity: 0; translate: 0 14px; } }
+
+.login-help { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; color: #e2def2; font-size: 14px; text-underline-offset: 4px; }

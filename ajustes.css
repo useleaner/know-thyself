@@ -67,3 +67,12 @@
 .settings-panel .settings-note { margin: 8px 0 0; }
 .settings-panel .settings-copy { margin: 14px 0 0; }
 @media (prefers-reduced-motion: reduce) { .settings-toggle .settings-chevron { transition: none; } }
+
+#panel-notificacoes .settings-copy { margin-top: 4px; }
+#notification-form :is(select, input[type='time']) { max-width: 65%; min-height: 44px; min-width: 0; border: 1px solid #e9d2a840; border-radius: 8px; background: #0d122b; color: var(--ink); font: 400 16px/1.4 Space, sans-serif; padding: 6px 8px; color-scheme: dark; }
+#notification-form select { flex: 1; text-overflow: ellipsis; }
+#notification-form :is(select, input[type='time']):focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+#notification-form :disabled { opacity: .55; }
+.notification-save { min-height: 44px; margin-top: 16px; padding: 8px 16px; border: 1px solid #e9d2a880; border-radius: 8px; background: transparent; color: var(--gold); font: 500 15px/1.4 Space, sans-serif; cursor: pointer; }
+.notification-save:active { background: #f1d9a81a; }
+#notification-status:empty, #notification-zone:empty { display: none; }

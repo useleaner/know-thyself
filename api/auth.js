@@ -1,5 +1,7 @@
+const { logFailure } = require('../lib/operational-log.cjs');
 const auth = require('../lib/google-auth.cjs');
 const mail = require('../lib/email-login.cjs');
+const users = require('../lib/user-store.cjs');
 
 async function readJson(req) {
   if (req.body && typeof req.body === 'object') return req.body;
@@ -12,7 +14,8 @@ async function readJson(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
-module.exports = async function handler(req, res) {
+function createHandler(repository = users) {
+return async function handler(req, res) {
   res.setHeader('Cache-Control', 'private, no-store');
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -48,7 +51,14 @@ module.exports = async function handler(req, res) {
   const jar = auth.cookies(req.headers.cookie);
   if (action === 'session') {
     const user = auth.authorizedSession(req.headers.cookie, config);
-    return json(200, { configured: true, clientId: config.clientId, email: Boolean(mail.emailConfiguration()), user: user ? { name: user.name, email: user.email } : null });
+    if (user) {
+      try { await repository.accountFor(user); }
+      catch (error) {
+        if (error.message !== 'account_inactive') { logFailure('accounts_unavailable'); return json(503, { error: 'accounts_unavailable' }); }
+        return json(200, { configured: true, clientId: config.clientId, email: Boolean(mail.emailConfiguration()), user: null });
+      }
+    }
+    return json(200, { configured: true, clientId: config.clientId, email: Boolean(mail.emailConfiguration()), user: user ? { name: user.name, email: user.email, accountId: user.accountId } : null });
   }
   if (action === 'google-exchange') {
     if (!auth.allowsOrigin(config, req.headers.origin) || req.headers['x-requested-with'] !== 'XmlHttpRequest') return json(403, { error: 'invalid_origin' });
@@ -58,7 +68,9 @@ module.exports = async function handler(req, res) {
     try {
       const user = await auth.googleProfile(body.code, null, config, req.headers.origin);
       if (!auth.allows(config, user.email)) return json(403, { error: 'access_denied' });
-      const session = auth.seal({ user: { ...user, email_verified: true } }, config, 'session', auth.SESSION_SECONDS);
+      let accountId;
+      try { accountId = await repository.recordLogin(user); } catch { logFailure('accounts_unavailable'); return json(503, { error: 'accounts_unavailable' }); }
+      const session = auth.seal({ accountId, user: { ...user, email_verified: true } }, config, 'session', auth.SESSION_SECONDS);
       res.setHeader('Set-Cookie', auth.cookie(auth.SESSION_COOKIE, session, config, auth.SESSION_SECONDS));
       return json(200, { ok: true });
     } catch {
@@ -82,7 +94,11 @@ module.exports = async function handler(req, res) {
     }
     const result = mail.verify(req.headers.cookie, body?.code, config);
     if (result.error) return json(400, { error: result.error });
-    const session = auth.seal({ user: { sub: `email:${result.email}`, email: result.email, name: result.email, email_verified: true } }, config, 'session', auth.SESSION_SECONDS);
+    if (!auth.allows(config, result.email)) return json(403, { error: 'access_denied' });
+    const user = { sub: `email:${result.email}`, email: result.email, name: result.email };
+    let accountId;
+    try { accountId = await repository.recordLogin(user); } catch { logFailure('accounts_unavailable'); return json(503, { error: 'accounts_unavailable' }); }
+    const session = auth.seal({ accountId, user: { ...user, email_verified: true } }, config, 'session', auth.SESSION_SECONDS);
     res.setHeader('Set-Cookie', [auth.cookie(mail.CODE_COOKIE, '', config, 0), auth.cookie(auth.SESSION_COOKIE, session, config, auth.SESSION_SECONDS)]);
     return json(200, { ok: true });
   }
@@ -108,11 +124,16 @@ module.exports = async function handler(req, res) {
       res.setHeader('Set-Cookie', [auth.cookie(auth.STATE_COOKIE, '', config, 0), auth.cookie(auth.SESSION_COOKIE, '', config, 0)]);
       return redirect('/?auth_error=access_denied');
     }
-    // shortcut: sessão sem banco expira em 8 horas; revogação individual exige armazenamento no servidor.
-    const session = auth.seal({ user: { ...user, email_verified: true } }, config, 'session', auth.SESSION_SECONDS);
+    let accountId;
+    try { accountId = await repository.recordLogin(user); } catch { logFailure('accounts_unavailable'); return redirect('/?auth_error=accounts_unavailable'); }
+    const session = auth.seal({ accountId, user: { ...user, email_verified: true } }, config, 'session', auth.SESSION_SECONDS);
     res.setHeader('Set-Cookie', [auth.cookie(auth.STATE_COOKIE, '', config, 0), auth.cookie(auth.SESSION_COOKIE, session, config, auth.SESSION_SECONDS)]);
     return redirect('/universo.html');
   } catch {
     return redirect('/?auth_error=google_unavailable');
   }
 };
+}
+
+module.exports = createHandler();
+module.exports.createHandler = createHandler;

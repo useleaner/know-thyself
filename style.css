@@ -91,14 +91,15 @@ h1{font-size:32px;color:#f2edff}
 .reading-support details[open] .chevron{transform:rotate(180deg)}
 .study-sheet{background:linear-gradient(145deg,#c1b7ef1c,#10152de8 32%);backdrop-filter:blur(28px) saturate(140%);border-top:1px solid #dfdaff58;border-radius:28px 28px 0 0}
 .sheet-orb{display:block;width:76px;height:76px;margin-top:2px}
-.source-note{color:#d0c4e2!important;font-size:10px!important;line-height:1.8!important;margin-top:22px}
-.source-note a{color:#e6dcfa;text-decoration-color:#bdb0e16b;text-underline-offset:3px}
 .hebrew-name{display:inline-block;margin-left:8px;color:#e8dafa;font-size:20px}
 .correspondence-symbol{display:inline-block;min-width:24px;margin-right:8px;color:#e8dafa;font-family:serif;font-size:22px;vertical-align:middle}
-.correspondence-symbol svg{display:inline-block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;vertical-align:middle}
+.correspondence-symbol svg,.correspondence-symbol img{display:inline-block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.5;vertical-align:middle}
 #sheet-content>.path-letter{display:block;font-size:58px;line-height:1.1;color:#e9ddff;text-shadow:1px 3px 12px #978cce5c}
 .personal-path-number{display:grid;place-items:center;width:68px;height:68px;background:url('./assets/path-marker.svg') center/contain no-repeat;color:#ece6fb;font-size:26px}
 .path-reading{margin-top:23px}
 .path-reading-item{padding:15px 0;border-top:1px solid #d6c8ed2b}
 .path-reading-item p{margin-bottom:0}
 .path-cycle{margin:0;padding:15px 0;border-top:1px solid #d6c8ed2b;color:#eddcc7}
+
+/* Ações de recuperação também aparecem fora da página de perfis. */
+.profile-action { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 10px 16px; font: inherit; color: inherit; }
